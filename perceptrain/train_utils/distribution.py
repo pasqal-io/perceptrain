@@ -10,7 +10,7 @@ from perceptrain.train_utils.execution import BaseExecution, detect_execution
 from perceptrain.types import ExecutionType
 
 # Initialize the logger for this module
-logger = getLogger("ml_tools")
+logger = getLogger("perceptrain" )
 
 
 class Distributor:

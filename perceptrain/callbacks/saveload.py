@@ -11,7 +11,7 @@ from nevergrad.optimization.base import Optimizer as NGOptimizer
 from torch.nn import Module
 from torch.optim import Optimizer
 
-logger = getLogger("ml_tools")
+logger = getLogger("perceptrain" )
 
 
 def get_latest_checkpoint_name(folder: Path, type: str, device: str | torch.device = "cpu") -> Path:
@@ -66,8 +66,8 @@ def write_checkpoint(
     optimizer: Optimizer | NGOptimizer,
     iteration: int | str,
 ) -> None:
-    from perceptrain.model import QuantumModel
-    from perceptrain.model import QNN
+    from perceptrain.models import QuantumModel
+    from perceptrain.models import QNN
 
     device = None
     try:
@@ -126,7 +126,7 @@ def load_model(
     *args: Any,
     **kwargs: Any,
 ) -> tuple[Module, int]:
-    from perceptrain.model import QNN, QuantumModel
+    from perceptrain.models import QNN, QuantumModel
 
     iteration = 0
     if model_ckpt_name == "":

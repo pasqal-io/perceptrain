@@ -22,9 +22,9 @@ from torch.utils.data import DataLoader
 from perceptrain import TrainConfig, Trainer
 from perceptrain.callbacks.writer_registry import BaseWriter
 from perceptrain.data import to_dataloader
-from perceptrain.model import QNN
-from perceptrain.model import rand_featureparameters
-from perceptrain.model import QuantumModel
+from perceptrain.models import QNN
+from perceptrain.models import rand_featureparameters
+from perceptrain.models import QuantumModel
 from perceptrain.types import ExperimentTrackingTool
 
 
@@ -83,8 +83,8 @@ def clean_mlflow_experiment(writer: BaseWriter) -> None:
 
 
 def setup_logger() -> logging.Logger:
-    logger = logging.getLogger("ml_tools")
-    # an additional streamhandler is needed in ml_tools as
+    logger = logging.getLogger("perceptrain" )
+    # an additional streamhandler is needed in perceptrain as
     # caplog does not record richhandler logs.
     stream_handler = logging.StreamHandler()
     logger.addHandler(stream_handler)

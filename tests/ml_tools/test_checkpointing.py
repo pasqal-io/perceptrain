@@ -17,7 +17,7 @@ from perceptrain import (
 )
 from perceptrain.data import to_dataloader
 from perceptrain.parameters import get_parameters, set_parameters
-from perceptrain.model import rand_featureparameters
+from perceptrain.models import rand_featureparameters
 
 
 def dataloader(batch_size: int = 25) -> DataLoader:

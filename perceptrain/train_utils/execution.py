@@ -11,7 +11,7 @@ import torch
 
 from perceptrain.types import ExecutionType
 
-logger = getLogger("ml_tools")
+logger = getLogger("perceptrain" )
 
 
 class BaseExecution(ABC):

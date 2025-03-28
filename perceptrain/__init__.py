@@ -59,7 +59,7 @@ list_of_submodules = [
     ".optimize_step",
     ".parameters",
     ".tensors",
-    ".model",
+    ".models",
 ]
 
 __all__ = []
@@ -68,7 +68,7 @@ for submodule in list_of_submodules:
     __all__ += __all_submodule__
 
 from .trainer import *
-from .model import *
+from .models import *
 from .callbacks.saveload import load_checkpoint, load_model, write_checkpoint
 from .config import TrainConfig
 from .data import DictDataLoader, InfiniteTensorDataset, OptimizeResult, to_dataloader
