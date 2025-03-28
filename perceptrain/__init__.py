@@ -21,7 +21,9 @@ logging_levels = {
     "ERROR": logging.ERROR,
     "CRITICAL": logging.CRITICAL,
 }
-LOG_CONFIG_PATH = os.environ.get("PERCEPTRAIN_LOG_CONFIG", f"{Path(__file__).parent}/log_config.yaml")
+LOG_CONFIG_PATH = os.environ.get(
+    "PERCEPTRAIN_LOG_CONFIG", f"{Path(__file__).parent}/log_config.yaml"
+)
 LOG_BASE_LEVEL = os.environ.get("PERCEPTRAIN_LOG_LEVEL", "").upper()
 
 with open(LOG_CONFIG_PATH, "r") as stream:
@@ -38,9 +40,6 @@ logger.setLevel(LOG_LEVEL)
 ]
 logger.debug(f"Perceptrain logger successfully setup with log level {LOG_LEVEL}")
 
-
-from .trainer import *
-from .utils import *
 
 """Fetch the functions defined in the __all__ of each sub-module.
 
@@ -60,7 +59,7 @@ list_of_submodules = [
     ".optimize_step",
     ".parameters",
     ".tensors",
-    ".utils",
+    ".model",
 ]
 
 __all__ = []
@@ -68,28 +67,20 @@ for submodule in list_of_submodules:
     __all_submodule__ = getattr(import_module(submodule, package="perceptrain"), "__all__")
     __all__ += __all_submodule__
 
+from .trainer import *
+from .model import *
+from .callbacks.saveload import load_checkpoint, load_model, write_checkpoint
+from .config import TrainConfig
+from .data import DictDataLoader, InfiniteTensorDataset, OptimizeResult, to_dataloader
+from .information import InformationContent
+from .optimize_step import optimize_step as default_optimize_step
+from .parameters import get_parameters, num_parameters, set_parameters
+from .tensors import numpy_to_tensor, promote_to, promote_to_tensor
+from .trainer import Trainer
 
-# from .callbacks.saveload import load_checkpoint, load_model, write_checkpoint
-# from .config import AnsatzConfig, FeatureMapConfig, TrainConfig
-# from .data import DictDataLoader, InfiniteTensorDataset, OptimizeResult, to_dataloader
-# from .information import InformationContent
-# from .optimize_step import optimize_step as default_optimize_step
-# from .parameters import get_parameters, num_parameters, set_parameters
-# from .tensors import numpy_to_tensor, promote_to, promote_to_tensor
-# from .trainer import Trainer
-
-# # Modules to be automatically added to the perceptrain namespace
-# __all__ = [
-#     "AnsatzConfig",
-#     "create_ansatz",
-#     "create_fm_blocks",
-#     "DictDataLoader",
-#     "FeatureMapConfig",
-#     "load_checkpoint",
-#     "create_observable",
-#     "QNN",
-#     "TrainConfig",
-#     "OptimizeResult",
-#     "Trainer",
-#     "write_checkpoint",
-# ]
+# Modules to be automatically added to the perceptrain namespace
+__all__ = [
+    "DictDataLoader",
+    "TrainConfig",
+    "Trainer",
+]

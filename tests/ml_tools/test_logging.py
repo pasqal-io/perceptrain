@@ -22,8 +22,8 @@ from torch.utils.data import DataLoader
 from perceptrain import TrainConfig, Trainer
 from perceptrain.callbacks.writer_registry import BaseWriter
 from perceptrain.data import to_dataloader
-from perceptrain.models import QNN
-from perceptrain.utils import rand_featureparameters
+from perceptrain.model import QNN
+from perceptrain.model import rand_featureparameters
 from perceptrain.model import QuantumModel
 from perceptrain.types import ExperimentTrackingTool
 

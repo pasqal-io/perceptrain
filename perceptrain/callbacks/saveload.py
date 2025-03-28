@@ -66,8 +66,8 @@ def write_checkpoint(
     optimizer: Optimizer | NGOptimizer,
     iteration: int | str,
 ) -> None:
-    from perceptrain import QuantumModel
-    from perceptrain.models import QNN
+    from perceptrain.model import QuantumModel
+    from perceptrain.model import QNN
 
     device = None
     try:
@@ -126,7 +126,7 @@ def load_model(
     *args: Any,
     **kwargs: Any,
 ) -> tuple[Module, int]:
-    from perceptrain import QNN, QuantumModel
+    from perceptrain.model import QNN, QuantumModel
 
     iteration = 0
     if model_ckpt_name == "":
