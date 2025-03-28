@@ -37,5 +37,3 @@ class CustomCallback(Callback):
 # Create the subclassed callback instance
 custom_callback = CustomCallback(on="train_batch_end", called_every=10)
 ```
-
-

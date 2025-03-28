@@ -10,7 +10,7 @@ from torch import Tensor
 from perceptrain.config import TrainConfig
 from perceptrain.types import ExperimentTrackingTool
 
-logger = getLogger("perceptrain" )
+logger = getLogger("perceptrain")
 
 
 class ConfigManager:

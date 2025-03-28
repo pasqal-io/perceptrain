@@ -26,4 +26,3 @@ from perceptrain.types import ExperimentTrackingTool
 # Set up tracking with MLflow
 config = TrainConfig(max_iter=100, tracking_tool=ExperimentTrackingTool.MLFLOW)
 ```
-

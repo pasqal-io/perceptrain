@@ -1,6 +1,6 @@
 # Distributed Training
 
-`Trainer` from `perceptrain` supports distributed training across multiple CPUs and GPUs. This is achieved using the `Accelerator` provided by `perceptrain`, which can also be used to design custom distributed training loops. 
+`Trainer` from `perceptrain` supports distributed training across multiple CPUs and GPUs. This is achieved using the `Accelerator` provided by `perceptrain`, which can also be used to design custom distributed training loops.
 
 ## **Configurations:**
 - **`compute_setup`**: Selected training setup. (`gpu` or `auto`)

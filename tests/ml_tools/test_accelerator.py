@@ -65,7 +65,7 @@ def dict_dataloader() -> DictDataLoader:
 
 
 def setup_logger() -> logging.Logger:
-    logger = logging.getLogger("perceptrain" )
+    logger = logging.getLogger("perceptrain")
     stream_handler = logging.StreamHandler()
     logger.addHandler(stream_handler)
     return logger

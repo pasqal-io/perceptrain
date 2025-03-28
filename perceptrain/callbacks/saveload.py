@@ -11,7 +11,7 @@ from nevergrad.optimization.base import Optimizer as NGOptimizer
 from torch.nn import Module
 from torch.optim import Optimizer
 
-logger = getLogger("perceptrain" )
+logger = getLogger("perceptrain")
 
 
 def get_latest_checkpoint_name(folder: Path, type: str, device: str | torch.device = "cpu") -> Path:

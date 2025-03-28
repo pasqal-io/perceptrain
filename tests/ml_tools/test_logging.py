@@ -83,7 +83,7 @@ def clean_mlflow_experiment(writer: BaseWriter) -> None:
 
 
 def setup_logger() -> logging.Logger:
-    logger = logging.getLogger("perceptrain" )
+    logger = logging.getLogger("perceptrain")
     # an additional streamhandler is needed in perceptrain as
     # caplog does not record richhandler logs.
     stream_handler = logging.StreamHandler()

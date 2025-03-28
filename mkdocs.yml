@@ -15,7 +15,7 @@ nav:
 
   - Tutorials:
     - tutorials/index.md
-    - Training: 
+    - Training:
       - tutorials/training/intro.md
       - Loss Functions: tutorials/training/loss.md
       - Tracking: tutorials/training/tracking.md
@@ -39,12 +39,12 @@ nav:
     - Distributed Training:
       - tutorials/distributed/intro.md
       - Accelerator: tutorials/distributed/accelerator_doc.md
-      - CPU Training: 
+      - CPU Training:
         - tutorials/distributed/CPU.md
         - Single Process: tutorials/distributed/single_cpu.md
         - Multi Process: tutorials/distributed/multi_cpu.md
-      - GPU Training: 
-        - tutorials/distributed/GPU.md    
+      - GPU Training:
+        - tutorials/distributed/GPU.md
         - Single GPU: tutorials/distributed/single_gpu.md
         - Multi GPU: tutorials/distributed/multi_gpu.md
         - Multi Node: tutorials/distributed/multinode_gpu.md

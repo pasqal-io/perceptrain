@@ -14,7 +14,7 @@ from perceptrain.stages import TrainingStage
 CallbackFunction = Callable[..., Any]
 CallbackConditionFunction = Callable[..., bool]
 
-logger = getLogger("perceptrain" )
+logger = getLogger("perceptrain")
 
 
 class Callback:

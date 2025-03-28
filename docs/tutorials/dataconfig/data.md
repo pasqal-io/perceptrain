@@ -45,4 +45,3 @@ print(f"{data = }")
 
 Note:
     In case of `infinite`=True, the dataloader iterator will provide a random sample from the dataset.
-

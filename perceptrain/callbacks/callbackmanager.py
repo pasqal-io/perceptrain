@@ -21,7 +21,7 @@ from perceptrain.stages import TrainingStage
 
 from .writer_registry import get_writer
 
-logger = logging.getLogger("perceptrain" )
+logger = logging.getLogger("perceptrain")
 
 
 class CallbacksManager:
