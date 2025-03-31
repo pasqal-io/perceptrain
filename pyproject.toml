@@ -32,7 +32,6 @@ dependencies = [
     "pyqtorch==1.7.3",
     "pyyaml",
     "matplotlib",
-    "mlflow",
 ]
 
 [tool.hatch.metadata]
