@@ -53,13 +53,6 @@ the __all__ of the perceptrain namespace. Make sure to keep alphabetical orderin
 
 list_of_submodules = [
     ".callbacks",
-    ".config",
-    ".data",
-    ".information",
-    ".optimize_step",
-    ".parameters",
-    ".tensors",
-    ".models",
 ]
 
 __all__ = []
@@ -83,4 +76,7 @@ __all__ = [
     "DictDataLoader",
     "TrainConfig",
     "Trainer",
+    "QNN",
+    "QuantumModel",
+    "Model"
 ]

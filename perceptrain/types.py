@@ -6,7 +6,6 @@ from enum import Enum
 from typing import Callable, Iterable, Tuple, Union
 
 import numpy as np
-import sympy
 from matplotlib.figure import Figure
 from numpy.typing import ArrayLike
 from torch import Tensor, pi
@@ -17,13 +16,13 @@ TNumber = Union[int, float, complex, np.int64, np.float64]
 
 TDrawColor = Tuple[float, float, float, float]
 
-TParameter = Union[TNumber, Tensor, sympy.Basic, str]
+TParameter = Union[TNumber, Tensor, str]
 """Union of numbers, tensors, and parameter types."""
 
 TArray = Union[Iterable, Tensor, np.ndarray]
 """Union of common array types."""
 
-TGenerator = Union[Tensor, sympy.Array, sympy.Basic]
+TGenerator = Union[Tensor]
 """Union of torch tensors and numpy arrays."""
 
 
