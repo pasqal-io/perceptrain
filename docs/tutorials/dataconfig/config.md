@@ -1,52 +1,4 @@
-## 1. Dataloaders
-
-When using Perceptrain, you can supply classical data to a quantum machine learning
-algorithm by using a standard PyTorch `DataLoader` instance. Perceptrain also provides
-the `DictDataLoader` convenience class which allows
-to build dictionaries of `DataLoader`s instances and easily iterate over them.
-
-```python exec="on" source="material-block" result="json"
-import torch
-from torch.utils.data import DataLoader, TensorDataset
-from perceptrain import DictDataLoader, to_dataloader
-
-
-def dataloader(data_size: int = 25, batch_size: int = 5, infinite: bool = False) -> DataLoader:
-    x = torch.linspace(0, 1, data_size).reshape(-1, 1)
-    y = torch.sin(x)
-    return to_dataloader(x, y, batch_size=batch_size, infinite=infinite)
-
-
-def dictdataloader(data_size: int = 25, batch_size: int = 5) -> DictDataLoader:
-    dls = {}
-    for k in ["y1", "y2"]:
-        x = torch.rand(data_size, 1)
-        y = torch.sin(x)
-        dls[k] = to_dataloader(x, y, batch_size=batch_size, infinite=True)
-    return DictDataLoader(dls)
-
-
-# iterate over standard DataLoader
-for (x,y) in dataloader(data_size=6, batch_size=2):
-    print(f"Standard {x = }")
-
-# construct an infinite dataset which will keep sampling indefinitely
-n_epochs = 5
-dl = iter(dataloader(data_size=6, batch_size=2, infinite=True))
-for _ in range(n_epochs):
-    (x, y) = next(dl)
-    print(f"Infinite {x = }")
-
-# iterate over DictDataLoader
-ddl = dictdataloader()
-data = next(iter(ddl))
-print(f"{data = }")
-```
-
-Note:
-    In case of `infinite`=True, the dataloader iterator will provide a random sample from the dataset.
-
-## 2. Training Configuration
+# Training Configuration
 
 The [`TrainConfig`][perceptrain.config.TrainConfig] class provides a comprehensive configuration setup for training quantam machine learning models in perceptrain. This configuration includes settings for batch size, logging, check-pointing, validation, and additional custom callbacks that control the training process's granularity and flexibility.
 
@@ -57,7 +9,7 @@ with a function `callback`.
 For example of how to use the TrainConfig with `Trainer`, please see [Examples in Trainer](../trainer)
 
 
-### 2.1 Explanation of `TrainConfig` Attributes
+### 1 Explanation of `TrainConfig` Attributes
 
 | Attribute                | Type                     | Default                  | Description |
 |--------------------------|--------------------------|--------------------------|-------------|
@@ -111,7 +63,7 @@ config = TrainConfig(
 ```
 
 
-### 2.2 Key Configuration Options in `TrainConfig`
+### 2 Key Configuration Options in `TrainConfig`
 
 #### Iterations and Batch Size
 
@@ -218,7 +170,7 @@ config = TrainConfig(
 
 - `nprocs` (**int**): Specifies the number of processes to be used. For multi-GPU training, this should match the total number of GPUs available. When nprocs is greater than 1, `Trainer` spawns additional subprocesses for training. This is useful for parallel or distributed training setups.
 
-- `compute_setup` (**str**): Determines the compute device configuration: 1.`"auto"` (automatically selects GPU if available), 2. `"gpu"` - (forces GPU usage and errors if no GPU is detected), and 3. `"cpu"` (Forces the use of the CPU).
+- `compute_setup` (**str**): Determines the compute device configuration: 1.`"auto"` (automatically selects GPU if available),  `"gpu"` - (forces GPU usage and errors if no GPU is detected), and 3. `"cpu"` (Forces the use of the CPU).
 
 - `backend` (**str**): Specifies the communication backend for distributed training. Common options are `"gloo"` (default), `"nccl"` (optimized for GPUs), or `"mpi"`, depending on your setup. It should be one of the backends supported by `torch.distributed`. For further details, please look at [torch backends](https://pytorch.org/docs/stable/distributed.html#torch.distributed.Backend)
 
@@ -271,21 +223,3 @@ Furthermore, the user can also utilize the following options:
 - `log_setup` (**str**): Configures the device used for logging. Using `"cpu"` ensures logging runs on the CPU (which may avoid conflicts with GPU operations), while `"auto"` aligns logging with the compute device.
 
 - `all_reduce_metrics` (**bool**): When enabled, aggregates metrics (such as loss or accuracy) across all training processes to provide a unified summary, though it may introduce additional synchronization overhead.
-
-## 3. Experiment tracking with mlflow
-
-perceptrain allows to track runs and log hyperparameters, models and plots with [tensorboard](https://pytorch.org/tutorials/recipes/recipes/tensorboard_with_pytorch.html) and [mlflow](https://mlflow.org/). In the following, we demonstrate the integration with mlflow.
-
-### mlflow configuration
-We have control over our tracking configuration by setting environment variables. First, let's look at the tracking URI. For the purpose of this demo we will be working with a local database, in a similar fashion as described [here](https://mlflow.org/docs/latest/tracking/tutorials/local-database.html),
-```bash
-export MLFLOW_TRACKING_URI=sqlite:///mlruns.db
-```
-
-perceptrain can also read the following two environment variables to define the mlflow experiment name and run name
-```bash
-export MLFLOW_EXPERIMENT=test_experiment
-export MLFLOW_RUN_NAME=run_0
-```
-
-If no tracking URI is provided, mlflow stores run information and artifacts in the local `./mlflow` directory and if no names are defined, the experiment and run will be named with random UUIDs.

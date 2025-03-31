@@ -16,7 +16,7 @@ from perceptrain.train_utils.distribution import Distributor
 from perceptrain.data import data_to_device, InfiniteTensorDataset, DictDataLoader
 from perceptrain.types import ExecutionType
 
-logger = getLogger("ml_tools")
+logger = getLogger("perceptrain")
 
 
 class Accelerator(Distributor):

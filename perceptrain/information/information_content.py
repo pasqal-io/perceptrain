@@ -10,7 +10,7 @@ import torch
 from torch import nn
 from torch.func import functional_call  # type: ignore
 
-logger = getLogger("ml_tools")
+logger = getLogger("perceptrain")
 
 
 class InformationContent:

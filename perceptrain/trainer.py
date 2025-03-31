@@ -19,7 +19,7 @@ from perceptrain.stages import TrainingStage
 from .train_utils.base_trainer import BaseTrainer
 from .train_utils.accelerator import Accelerator
 
-logger = getLogger("ml_tools")
+logger = getLogger("perceptrain")
 
 
 class Trainer(BaseTrainer):

@@ -17,7 +17,7 @@ from perceptrain.config import TrainConfig
 from perceptrain.data import DictDataLoader, OptimizeResult
 from perceptrain.types import ExperimentTrackingTool
 
-logger = getLogger("ml_tools")
+logger = getLogger("perceptrain")
 
 # Type aliases
 PlottingFunction = Callable[[Module, int], tuple[str, Figure]]

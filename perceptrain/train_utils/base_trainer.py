@@ -20,7 +20,7 @@ from perceptrain.stages import TrainingStage
 
 from .config_manager import ConfigManager
 
-logger = getLogger("ml_tools")
+logger = getLogger("perceptrain")
 
 
 class BaseTrainer:

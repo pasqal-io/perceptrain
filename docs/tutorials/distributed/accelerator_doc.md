@@ -23,20 +23,6 @@ accelerator = Accelerator(
 )
 ```
 
-#### Using Accelerator with Trainer
-
-`Accelerator` is already integrated into the `Trainer` class from `perceptrain.ml_tools`, and `Trainer` can automatically distribute the training process based on the configurations provided in `TrainConfig`.
-
-```python
-from perceptrain.trainer import Trainer
-from perceptrain import TrainConfig
-
-config = TrainConfig(nprocs=4)
-
-trainer = Trainer(model, optimizer, config)
-model, optimizer = trainer.fit(dataloader)
-```
-
 
 ### Accelerator features
 

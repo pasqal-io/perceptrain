@@ -1,227 +1,6 @@
+# Examples
 
-# Perceptrain Trainer Guide
-
-The [`Trainer`][perceptrain.Trainer] class in `perceptrain.ml_tools` is a versatile tool designed to streamline the training of quantum machine learning models.
-It offers flexibility for both gradient-based and gradient-free optimization methods, supports custom loss functions, and integrates seamlessly with tracking tools like TensorBoard and MLflow.
-Additionally, it provides hooks for implementing custom behaviors during the training process.
-
-For training QML models, perceptrain offers this out-of-the-box [`Trainer`][perceptrain.Trainer] for optimizing differentiable
-models, _e.g._ `QNN`s and `QuantumModel`, containing either *trainable* and/or *non-trainable* parameters
-(see [the parameters tutorial](../../../content/parameters.md) for detailed information about parameter types):
-
----
-
-## 1. Overview
-
-The `Trainer` class simplifies the training workflow by managing the training loop, handling data loading, and facilitating model evaluation.
-It is compatible with various optimization strategies and allows for extensive customization to meet specific training requirements.
-
-Example of initializing the `Trainer`:
-
-```python
-from perceptrain import Trainer, TrainConfig
-from torch.optim import Adam
-
-# Initialize model and optimizer
-model = ...  # Define or load a quantum model here
-optimizer = Adam(model.parameters(), lr=0.01)
-config = TrainConfig(max_iter=100, print_every=10)
-
-# Initialize Trainer with model, optimizer, and configuration
-trainer = Trainer(model=model, optimizer=optimizer, config=config)
-```
-
-> Notes:
-> `perceptrain` versions prior to 1.9.0 provided `train_with_grad` and `train_no_grad` functions, which are being replaced with `Trainer`. The user can transition as following.
-> ```python
-> from perceptrain import train_with_grad
-> train_with_grad(model=model, optimizer=optimizer, config=config, data = data)
-> ```
-> to
-> ```python
-> from perceptrain import Trainer
-> trainer = Trainer(model=model, optimizer=optimizer, config=config)
-> trainer.fit(train_dataloader = data)
-> ```
-
-## 2. Gradient-Based and Gradient-Free Optimization
-
-The `Trainer` supports both gradient-based and gradient-free optimization methods.
-Default is gradient-based optimization.
-
-- **Gradient-Based Optimization**: Utilizes optimizers from PyTorch's `torch.optim` module.
-This is the default behaviour of the `Trainer`, thus setting this is not necessary.
-However, it can be explicity mentioned as follows.
-Example of using gradient-based optimization:
-
-```python exec="on" source="material-block"
-from perceptrain import Trainer
-
-# set_use_grad(True) to enable gradient based training. This is the default behaviour of Trainer.
-Trainer.set_use_grad(True)
-```
-
-- **Gradient-Free Optimization**: Employs optimization algorithms from the [Nevergrad](https://facebookresearch.github.io/nevergrad/) library.
-
-
-Example of using gradient-free optimization with Nevergrad:
-
-```python exec="on" source="material-block"
-from perceptrain import Trainer
-
-# set_use_grad(False) to disable gradient based training.
-Trainer.set_use_grad(False)
-```
-
-### Using Context Managers for Mixed Optimization
-
-For cases requiring both optimization methods in a single training session, the `Trainer` class provides context managers to enable or disable gradients.
-
-```python
-# Temporarily switch to gradient-based optimization
-with trainer.enable_grad_opt(optimizer):
-    print("Gradient Based Optimization")
-    # trainer.fit(train_loader)
-
-# Switch to gradient-free optimization for specific steps
-with trainer.disable_grad_opt(ng_optimizer):
-    print("Gradient Free Optimization")
-    # trainer.fit(train_loader)
-```
-
----
-
-## 3. Custom Loss Functions
-
-Users can define custom loss functions tailored to their specific tasks.
-The `Trainer` accepts a `loss_fn` parameter, which should be a callable that takes the model and data as inputs and returns a tuple containing the loss tensor and a dictionary of metrics.
-
-Example of using a custom loss function:
-
-```python exec="on" source="material-block"
-import torch
-from itertools import count
-cnt = count()
-criterion = torch.nn.MSELoss()
-
-def loss_fn(model: torch.nn.Module, data: torch.Tensor) -> tuple[torch.Tensor, dict]:
-    next(cnt)
-    x, y = data
-    out = model(x)
-    loss = criterion(out, y)
-    return loss, {}
-```
-
-This custom loss function can be used in the trainer
-```python
-from perceptrain import Trainer, TrainConfig
-from torch.optim import Adam
-
-# Initialize model and optimizer
-model = ...  # Define or load a quantum model here
-optimizer = Adam(model.parameters(), lr=0.01)
-config = TrainConfig(max_iter=100, print_every=10)
-
-trainer = Trainer(model=model, optimizer=optimizer, config=config, loss_fn=loss_fn)
-```
-
-
----
-
-## 4. Hooks for Custom Behavior
-
-The `Trainer` class provides several hooks that enable users to inject custom behavior at different stages of the training process.
-These hooks are methods that can be overridden in a subclass to execute custom code.
-The available hooks include:
-
-- `on_train_start`: Called at the beginning of the training process.
-- `on_train_end`: Called at the end of the training process.
-- `on_train_epoch_start`: Called at the start of each training epoch.
-- `on_train_epoch_end`: Called at the end of each training epoch.
-- `on_train_batch_start`: Called at the start of each training batch.
-- `on_train_batch_end`: Called at the end of each training batch.
-
-Each "start" and "end" hook receives data and loss metrics as arguments. The specific values provided for these arguments depend on the training stage associated with the hook. The context of the training stage (e.g., training, validation, or testing) determines which metrics are relevant and how they are populated. For details of inputs on each hook, please review the documentation of [`BaseTrainer`][perceptrain.train_utils.BaseTrainer].
-
-    - Example of what inputs are provided to training hooks.
-
-        ```
-        def on_train_batch_start(self, batch: Tuple[torch.Tensor, ...] | None) -> None:
-            """
-            Called at the start of each training batch.
-
-            Args:
-                batch: A batch of data from the DataLoader. Typically a tuple containing
-                    input tensors and corresponding target tensors.
-            """
-            pass
-        ```
-        ```
-        def on_train_batch_end(self, train_batch_loss_metrics: Tuple[torch.Tensor, Any]) -> None:
-            """
-            Called at the end of each training batch.
-
-            Args:
-                train_batch_loss_metrics: Metrics for the training batch loss.
-                    Tuple of (loss, metrics)
-            """
-            pass
-        ```
-
-Example of using a hook to log a message at the end of each epoch:
-
-```python exec="on" source="material-block"
-from perceptrain import Trainer
-
-class CustomTrainer(Trainer):
-    def on_train_epoch_end(self, train_epoch_loss_metrics):
-        print(f"End of epoch - Loss and Metrics: {train_epoch_loss_metrics}")
-```
-
-> Notes:
-> Trainer offers inbuilt callbacks as well. Callbacks are mainly for logging/tracking purposes, but the above mentioned hooks are generic. The workflow for every train batch looks like:
-> 1. perform on_train_batch_start callbacks,
-> 2. call the on_train_batch_start hook,
-> 3. do the batch training,
-> 4. call the on_train_batch_end hook, and
-> 5. perform on_train_batch_end callbacks.
->
-> The use of `on_`*{phase}*`_start` and `on_`*{phase}*`_end` hooks is not specifically to add extra callbacks, but for any other generic pre/post processing. For example, reshaping input batch in case of RNNs/LSTMs, post processing loss and adding an extra metric. They could also be used to add more callbacks (which is not recommended - as we provide methods to add extra callbacks in the TrainCofig)
-
----
-
-## 5. Experiment Tracking with TensorBoard and MLflow
-
-The `Trainer` integrates with TensorBoard and MLflow for experiment tracking:
-
-- **TensorBoard**: Logs metrics and visualizations during training, allowing users to monitor the training process.
-
-- **MLflow**: Tracks experiments, logs parameters, metrics, and artifacts, and provides a user-friendly interface for comparing different runs.
-
-To utilize these tracking tools, the `Trainer` can be configured with appropriate writers that handle the logging of metrics and other relevant information during training.
-
-Example of using TensorBoard tracking:
-
-```python
-from perceptrain import TrainConfig
-from perceptrain.types import ExperimentTrackingTool
-
-# Set up tracking with TensorBoard
-config = TrainConfig(max_iter=100, tracking_tool=ExperimentTrackingTool.TENSORBOARD)
-```
-
-Example of using MLflow tracking:
-
-```python
-from perceptrain.types import ExperimentTrackingTool
-
-# Set up tracking with MLflow
-config = TrainConfig(max_iter=100, tracking_tool=ExperimentTrackingTool.MLFLOW)
-```
-
-## 6. Examples
-
-### 6.1. Training with `Trainer` and `TrainConfig`
+### 1. Training with `Trainer` and `TrainConfig`
 
 #### Setup
 Let's do the necessary imports and declare a `DataLoader`. We can already define some hyperparameters here, including the seed for random number generators. mlflow can log hyperparameters with arbitrary types, for example the observable that we want to monitor (`Z` in this case, which has a `perceptrain.Operation` type).
@@ -336,7 +115,7 @@ mlflow ui --port 8080 --backend-store-uri sqlite:///mlruns.db
 In this case, since we're running on a local server, we can access the mlflow UI by navigating to http://localhost:8080/.
 
 
-### 6.2. Fitting a function with a QNN using `ml_tools`
+### 2. Fitting a function with a QNN using `Trainer`
 
 In Quantum Machine Learning, the general consensus is to use `complex128` precision for states and operators and `float64` precision for parameters. This is also the convention which is used in `perceptrain`.
 However, for specific usecases, lower precision can greatly speed up training and reduce memory consumption. When using the `pyqtorch` backend, `perceptrain` offers the option to move a `QuantumModel` instance to a specific precision using the torch `to` syntax.
@@ -415,7 +194,7 @@ print(docsutils.fig_to_html(plt.gcf())) # markdown-exec: hide
 ```
 
 
-### 6.3. Fitting a function - Low-level API
+### 3. Fitting a function - Low-level API
 
 For users who want to use the low-level API of `perceptrain`, here an example written without `Trainer`.
 
@@ -466,7 +245,7 @@ for i in range(n_epochs):
 
 
 
-### 6.4. Performing pre-training Exploratory Landscape Analysis (ELA) with Information Content (IC)
+### 4. Performing pre-training Exploratory Landscape Analysis (ELA) with Information Content (IC)
 
 Before one embarks on training a model, one may wish to analyze the loss landscape to judge the trainability and catch vanishing gradient issues early.
 One way of doing this is made possible via calculating the [Information Content of the loss landscape](https://www.nature.com/articles/s41534-024-00819-8).
@@ -552,7 +331,7 @@ The sensitivity IC bound is guaranteed to appear, while the usually much tighter
 
 
 
-### 6.5. Custom `train` loop
+### 5. Custom `train` loop
 
 If you need custom training functionality that goes beyond what is available in
 `perceptrain.Trainer` you can write your own
@@ -628,7 +407,3 @@ def train(
 
     return model, optimizer
 ```
-
-### 6.6. Gradient-free optimization using `Trainer`
-
-We can achieve gradient free optimization with `Trainer.set_use_grad(False)` or `trainer.disable_grad_opt(ng_optimizer)`. An example solving a QUBO using gradient free optimization based on `Nevergrad` optimizers and `Trainer` is shown in the [analog QUBO Tutorial](../../digital_analog_qc/analog-qubo.md).

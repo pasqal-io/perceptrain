@@ -15,18 +15,46 @@ nav:
 
   - Tutorials:
     - tutorials/index.md
-    - ML Tools:
-      - tutorials/qml/intro.md
-      - Training: tutorials/qml/trainer.md
-      - Data and Configurations: tutorials/qml/data_and_config.md
-      - Training Callbacks: tutorials/qml/callbacks.md
-      - Accelerator: tutorials/qml/accelerator_doc.md
-      - CPU Training: tutorials/qml/CPU.md
-      - GPU Training: tutorials/qml/GPU.md
+    - Training:
+      - tutorials/training/intro.md
+      - Loss Functions: tutorials/training/loss.md
+      - Tracking: tutorials/training/tracking.md
+      - Optimization Type: tutorials/training/gradient.md
+      - Training Stages Hooks: tutorials/training/hooks.md
+      - Exmaples: tutorials/training/examples.md
 
+
+    - Data & Configuration:
+      - tutorials/dataconfig/intro.md
+      - TrainConfig: tutorials/dataconfig/config.md
+      - Dataloader: tutorials/dataconfig/data.md
+      - Experiment Tracking: tutorials/dataconfig/tracking.md
+
+    - Callbacks:
+      - tutorials/callbacks/intro.md
+      - List of Callbacks: tutorials/callbacks/default.md
+      - Callbacks with Trainer: tutorials/callbacks/trainer_callbacks.md
+      - Custom Callbacks: tutorials/callbacks/custom.md
+
+    - Distributed Training:
+      - tutorials/distributed/intro.md
+      - Accelerator: tutorials/distributed/accelerator_doc.md
+      - CPU Training:
+        - tutorials/distributed/CPU.md
+        - Single Process: tutorials/distributed/single_cpu.md
+        - Multi Process: tutorials/distributed/multi_cpu.md
+      - GPU Training:
+        - tutorials/distributed/GPU.md
+        - Single GPU: tutorials/distributed/single_gpu.md
+        - Multi GPU: tutorials/distributed/multi_gpu.md
+        - Multi Node: tutorials/distributed/multinode_gpu.md
 
   - API:
-    - QML tools: api/ml_tools.md
+    - Trainer: api/trainer.md
+    - Configurations: api/config.md
+    - Accelerator: api/accelerator.md
+    - Callbacks: api/callback.md
+    - Information Content: api/information.md
 
 
   - Contact: https://github.com/pasqal-io/perceptrain/discussions

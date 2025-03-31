@@ -16,19 +16,7 @@ handlers:
     class: rich.logging.RichHandler
     formatter: empty
 loggers:
-  qadence:
-    level: INFO
-    handlers: [console]
-    propagate: yes
-  pyqtorch:
-    level: INFO
-    handlers: [console]
-    propagate: yes
-  script:
-    level: INFO
-    handlers: [console]
-    propagate: yes
-  ml_tools:
+  perceptrain:
     level: INFO
     handlers: [richconsole]
     propagate: false
