@@ -53,13 +53,6 @@ the __all__ of the perceptrain namespace. Make sure to keep alphabetical orderin
 
 list_of_submodules = [
     ".callbacks",
-    ".config",
-    ".data",
-    ".information",
-    ".optimize_step",
-    ".parameters",
-    ".tensors",
-    ".models",
 ]
 
 __all__ = []
@@ -79,8 +72,4 @@ from .tensors import numpy_to_tensor, promote_to, promote_to_tensor
 from .trainer import Trainer
 
 # Modules to be automatically added to the perceptrain namespace
-__all__ = [
-    "DictDataLoader",
-    "TrainConfig",
-    "Trainer",
-]
+__all__ = ["DictDataLoader", "TrainConfig", "Trainer", "QNN", "QuantumModel", "Model"]

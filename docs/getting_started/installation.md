@@ -12,32 +12,6 @@ pip install perceptrain
 
 By default, this will also install [PyQTorch](https://github.com/pasqal-io/pyqtorch), a differentiable state vector simulator which serves as the main numerical backend for Perceptrain.
 
-It is possible to install additional backends and the circuit visualization library using the following extras:
-
-* `visualization`: to display quantum circuits.
-* `pulser`: the [Pulser](https://github.com/pasqal-io/Pulser) backend for composing, simulating and executing pulse sequences for neutral-atom quantum devices (in development).
-
-To install other backends or the visualization tool, please use:
-
-```bash
-pip install "perceptrain[pulser, visualization]"
-```
-
-!!! note
-    In order to correctly install the `visualization` extra, the `graphviz` package needs to be installed
-    in your system:
-
-    ```bash
-    # on Ubuntu
-    sudo apt install graphviz
-
-    # on MacOS
-    brew install graphviz
-
-    # via conda
-    conda install python-graphviz
-    ```
-
 ## Install from source
 
 We recommend to use the [`hatch`](https://hatch.pypa.io/latest/) environment manager to install `perceptrain` from source:

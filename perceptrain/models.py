@@ -9,13 +9,6 @@ Model: Module
 QuantumModel: Module
 QNN: Module
 
-# Modules to be automatically added to the perceptrain namespace
-__all__ = [
-    "Model",
-    "QuantumModel",
-    "QNN",
-]
-
 
 @singledispatch
 def rand_featureparameters(x: Model, *args: Any) -> dict[str, Tensor]:
