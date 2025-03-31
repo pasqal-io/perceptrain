@@ -6,7 +6,7 @@ This guide explains how to train models on **GPU** using `Trainer` from `percept
 - *nprocs*: Number of processes to run. To enable multi-processing and launch separate processes, set nprocs > 1.
 - *compute_setup*: The computational setup used for training. Options include `cpu`, `gpu`, and `auto`.
 
-For more details on the advanced training options, please refer to [TrainConfig Documentation](./data_and_config.md)
+For more details on the advanced training options, please refer to [TrainConfig Documentation](../dataconfig/intro.md)
 
 ## **Configuring `TrainConfig` for GPU Training**
 By adjusting `TrainConfig`, you can switch between single and multi-GPU training setups. Below are the key settings for each configuration:

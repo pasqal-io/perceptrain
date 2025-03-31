@@ -122,7 +122,9 @@ However, for specific usecases, lower precision can greatly speed up training an
 
 Let's look at a complete example of how to use `Trainer` now. Here we perform a validation check during training and use a validation criterion that checks whether the validation loss in the current iteration has decreased compared to the lowest validation loss from all previous iterations. For demonstration, the train and the validation data are kept the same here. However, it is beneficial and encouraged to keep them distinct in practice to understand model's generalization capabilities.
 
-```python exec="on" source="material-block" html="1"
+> Note: This relies on the implementation of a quantum model
+
+```python
 from pathlib import Path
 import torch
 from functools import reduce
@@ -130,9 +132,10 @@ from operator import add
 from itertools import count
 import matplotlib.pyplot as plt
 
-from perceptrain import Parameter, QuantumCircuit, Z
-from perceptrain import hamiltonian_factory, hea, feature_map, chain
-from perceptrain import QNN
+from qadence import Parameter, QuantumCircuit, Z
+from qadence import hamiltonian_factory, hea, feature_map, chain
+from qadence import QNN
+
 from perceptrain import  TrainConfig, Trainer, to_dataloader
 
 Trainer.set_use_grad(True)
@@ -193,59 +196,7 @@ from docs import docsutils # markdown-exec: hide
 print(docsutils.fig_to_html(plt.gcf())) # markdown-exec: hide
 ```
 
-
-### 3. Fitting a function - Low-level API
-
-For users who want to use the low-level API of `perceptrain`, here an example written without `Trainer`.
-
-```python exec="on" source="material-block"
-from pathlib import Path
-import torch
-from itertools import count
-from perceptrain.constructors import hamiltonian_factory, hea, feature_map
-from perceptrain import chain, Parameter, QuantumCircuit, Z
-from perceptrain import QNN
-from perceptrain import TrainConfig
-
-n_qubits = 2
-fm = feature_map(n_qubits)
-ansatz = hea(n_qubits=n_qubits, depth=3)
-observable = hamiltonian_factory(n_qubits, detuning=Z)
-circuit = QuantumCircuit(n_qubits, fm, ansatz)
-
-model = QNN(circuit, observable, backend="pyqtorch", diff_mode="ad")
-batch_size = 1
-input_values = {"phi": torch.rand(batch_size, requires_grad=True)}
-pred = model(input_values)
-
-criterion = torch.nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
-n_epochs=50
-cnt = count()
-
-tmp_path = Path("/tmp")
-
-config = TrainConfig(
-    root_folder=tmp_path,
-    max_iter=n_epochs,
-    checkpoint_every=100,
-    write_every=100,
-    batch_size=batch_size,
-)
-
-x = torch.linspace(0, 1, batch_size).reshape(-1, 1)
-y = torch.sin(x)
-
-for i in range(n_epochs):
-    out = model(x)
-    loss = criterion(out, y)
-    loss.backward()
-    optimizer.step()
-```
-
-
-
-### 4. Performing pre-training Exploratory Landscape Analysis (ELA) with Information Content (IC)
+### 3. Performing pre-training Exploratory Landscape Analysis (ELA) with Information Content (IC)
 
 Before one embarks on training a model, one may wish to analyze the loss landscape to judge the trainability and catch vanishing gradient issues early.
 One way of doing this is made possible via calculating the [Information Content of the loss landscape](https://www.nature.com/articles/s41534-024-00819-8).
@@ -261,7 +212,9 @@ Thus, we get 3 bounds. The upper and lower bounds for the maximum IC and the upp
 
 The `Trainer` class provides a method to calculate these gradient norms.
 
-```python exec="on" source="material-block" html="1"
+> Note: This relies on the implementation of a quantum model
+
+```python
 import torch
 from torch.optim.adam import Adam
 
@@ -331,7 +284,7 @@ The sensitivity IC bound is guaranteed to appear, while the usually much tighter
 
 
 
-### 5. Custom `train` loop
+### 4. Custom `train` loop
 
 If you need custom training functionality that goes beyond what is available in
 `perceptrain.Trainer` you can write your own
