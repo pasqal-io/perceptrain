@@ -31,7 +31,7 @@
   </picture>
 <p align="center">
 
-* Training models made simple with **Trainer** and **Train Configurations**. 
+* Training models made simple with **Trainer** and **Train Configurations**.
 
 * Support for **gradient based** and **gradient free** optimization.
 
