@@ -66,8 +66,8 @@ def write_checkpoint(
     optimizer: Optimizer | NGOptimizer,
     iteration: int | str,
 ) -> None:
-    from perceptrain.models import QuantumModel
-    from perceptrain.models import QNN
+    from perceptrain import QuantumModel
+    from perceptrain import QNN
 
     device = None
     try:

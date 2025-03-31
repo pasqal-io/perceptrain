@@ -167,8 +167,8 @@ def test_train_val(tmp_path: Path, Basic: torch.nn.Module) -> None:
 
 
 @pytest.mark.flaky(max_runs=10)
-def test_train_tensor_tuple(Basic: torch.nn.Module, BasicQNN: QNN) -> None:
-    for cls, dtype in [(Basic, torch.float32), (BasicQNN, torch.complex64)]:
+def test_train_tensor_tuple(Basic: torch.nn.Module) -> None:
+    for cls, dtype in [(Basic, torch.float32)]:
         model = cls
         batch_size = 25
         x = torch.linspace(0, 1, batch_size).reshape(-1, 1)

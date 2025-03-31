@@ -21,7 +21,7 @@ from perceptrain.constructors import feature_map, hamiltonian_factory
 from perceptrain import Trainer, TrainConfig
 from perceptrain.data import to_dataloader
 from perceptrain.utils import rand_featureparameters
-from perceptrain.models import QNN, QuantumModel
+from perceptrain import QNN, QuantumModel
 from perceptrain.types import ExperimentTrackingTool
 
 hyperparams = {
@@ -268,7 +268,7 @@ from torch.optim.adam import Adam
 from perceptrain.constructors import ObservableConfig
 from perceptrain.config import AnsatzConfig, FeatureMapConfig, TrainConfig
 from perceptrain.data import to_dataloader
-from perceptrain.models import QNN
+from perceptrain import QNN
 from perceptrain.optimize_step import optimize_step
 from perceptrain.trainer import Trainer
 from perceptrain.operations.primitive import Z
