@@ -22,9 +22,8 @@ from torch.utils.data import DataLoader
 from perceptrain import TrainConfig, Trainer
 from perceptrain.callbacks.writer_registry import BaseWriter
 from perceptrain.data import to_dataloader
-from perceptrain.models import QNN
-from perceptrain.models import rand_featureparameters
-from perceptrain.models import QuantumModel
+from perceptrain import QNN
+from perceptrain import QuantumModel
 from perceptrain.types import ExperimentTrackingTool
 
 
@@ -38,11 +37,10 @@ def setup_model(model: Module) -> tuple[Callable, Optimizer]:
     cnt = count()
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
-    inputs = rand_featureparameters(model, 1)
 
-    def loss_fn(model: QuantumModel, data: torch.Tensor) -> tuple[torch.Tensor, dict]:
+    def loss_fn(model: torch.nn.Module, data: torch.Tensor) -> tuple[torch.Tensor, dict]:
         next(cnt)
-        out = model.expectation(inputs)
+        out = model()
         loss = criterion(out, torch.rand(1))
         return loss, {}
 
@@ -91,8 +89,8 @@ def setup_logger() -> logging.Logger:
     return logger
 
 
-def test_hyperparams_logging_mlflow(BasicQuantumModel: QuantumModel, tmp_path: Path) -> None:
-    model = BasicQuantumModel
+def test_hyperparams_logging_mlflow(BasicNoInput: torch.nn.Module, tmp_path: Path) -> None:
+    model = BasicNoInput
 
     loss_fn, optimizer = setup_model(model)
 
@@ -123,8 +121,8 @@ def test_hyperparams_logging_mlflow(BasicQuantumModel: QuantumModel, tmp_path: P
     clean_mlflow_experiment(trainer.callback_manager.writer)
 
 
-def test_hyperparams_logging_tensorboard(BasicQuantumModel: QuantumModel, tmp_path: Path) -> None:
-    model = BasicQuantumModel
+def test_hyperparams_logging_tensorboard(BasicNoInput: torch.nn.Module, tmp_path: Path) -> None:
+    model = BasicNoInput
 
     loss_fn, optimizer = setup_model(model)
 
@@ -144,8 +142,8 @@ def test_hyperparams_logging_tensorboard(BasicQuantumModel: QuantumModel, tmp_pa
         trainer.fit()
 
 
-def test_model_logging_mlflow_basicQM(BasicQuantumModel: QuantumModel, tmp_path: Path) -> None:
-    model = BasicQuantumModel
+def test_model_logging_mlflow_BasicNoInputQM(BasicNoInput: torch.nn.Module, tmp_path: Path) -> None:
+    model = BasicNoInput
     loss_fn, optimizer = setup_model(model)
 
     config = TrainConfig(
@@ -166,59 +164,11 @@ def test_model_logging_mlflow_basicQM(BasicQuantumModel: QuantumModel, tmp_path:
     clean_mlflow_experiment(trainer.callback_manager.writer)
 
 
-def test_model_logging_mlflow_basicQNN(BasicQNN: QNN, tmp_path: Path) -> None:
-    data = dataloader()
-    model = BasicQNN
-
-    loss_fn, optimizer = setup_model(model)
-
-    config = TrainConfig(
-        root_folder=tmp_path,
-        max_iter=10,  # type: ignore
-        checkpoint_every=1,
-        write_every=1,
-        log_model=True,
-        tracking_tool=ExperimentTrackingTool.MLFLOW,
-    )
-
-    trainer = Trainer(model, optimizer, config, loss_fn, data)
-    with trainer.enable_grad_opt():
-        trainer.fit()
-
-    load_mlflow_model(trainer.callback_manager.writer)
-
-    clean_mlflow_experiment(trainer.callback_manager.writer)
-
-
-def test_model_logging_mlflow_basicAdjQNN(BasicAdjointQNN: QNN, tmp_path: Path) -> None:
-    data = dataloader()
-    model = BasicAdjointQNN
-
-    loss_fn, optimizer = setup_model(model)
-
-    config = TrainConfig(
-        root_folder=tmp_path,
-        max_iter=10,  # type: ignore
-        checkpoint_every=1,
-        write_every=1,
-        log_model=True,
-        tracking_tool=ExperimentTrackingTool.MLFLOW,
-    )
-
-    trainer = Trainer(model, optimizer, config, loss_fn, data)
-    with trainer.enable_grad_opt():
-        trainer.fit()
-
-    load_mlflow_model(trainer.callback_manager.writer)
-
-    clean_mlflow_experiment(trainer.callback_manager.writer)
-
-
 def test_model_logging_tensorboard(
-    BasicQuantumModel: QuantumModel, tmp_path: Path, capsys: pytest.LogCaptureFixture
+    BasicNoInput: torch.nn.Module, tmp_path: Path, capsys: pytest.LogCaptureFixture
 ) -> None:
     setup_logger()
-    model = BasicQuantumModel
+    model = BasicNoInput
 
     loss_fn, optimizer = setup_model(model)
 
@@ -239,25 +189,18 @@ def test_model_logging_tensorboard(
     assert "Model logging is not supported by tensorboard. No model will be logged." in captured.err
 
 
-def test_plotting_mlflow(BasicQNN: QNN, tmp_path: Path) -> None:
+def test_plotting_mlflow(BasicNoInput: torch.nn.Module, tmp_path: Path) -> None:
     data = dataloader()
-    model = BasicQNN
+    model = BasicNoInput
 
     loss_fn, optimizer = setup_model(model)
-
-    def plot_model(model: QuantumModel, iteration: int) -> tuple[str, Figure]:
-        descr = f"model_prediction_epoch_{iteration}.png"
-        fig, ax = plt.subplots()
-        x = torch.linspace(0, 1, 100).reshape(-1, 1)
-        out = model.expectation(x)
-        ax.plot(x.detach().numpy(), out.detach().numpy())
-        return descr, fig
 
     def plot_error(model: QuantumModel, iteration: int) -> tuple[str, Figure]:
         descr = f"error_epoch_{iteration}.png"
         fig, ax = plt.subplots()
         x = torch.linspace(0, 1, 100).reshape(-1, 1)
-        out = model.expectation(x)
+        scalar_out = model()
+        out = scalar_out.expand_as(x)
         ground_truth = torch.rand_like(out)
         error = ground_truth - out
         ax.plot(x.detach().numpy(), error.detach().numpy())
@@ -272,14 +215,14 @@ def test_plotting_mlflow(BasicQNN: QNN, tmp_path: Path) -> None:
         write_every=1,
         plot_every=plot_every,
         tracking_tool=ExperimentTrackingTool.MLFLOW,
-        plotting_functions=(plot_model, plot_error),
+        plotting_functions=(plot_error,),
     )
 
     trainer = Trainer(model, optimizer, config, loss_fn, data)
     with trainer.enable_grad_opt():
         trainer.fit()
 
-    all_plot_names = [f"model_prediction_epoch_{i}.png" for i in range(0, max_iter, plot_every)]
+    all_plot_names = []
     all_plot_names.extend([f"error_epoch_{i}.png" for i in range(0, max_iter, plot_every)])
 
     artifact_path = find_mlflow_artifacts_path(trainer.callback_manager.writer.run)
@@ -289,25 +232,18 @@ def test_plotting_mlflow(BasicQNN: QNN, tmp_path: Path) -> None:
     clean_mlflow_experiment(trainer.callback_manager.writer)
 
 
-def test_plotting_tensorboard(BasicQNN: QNN, tmp_path: Path) -> None:
+def test_plotting_tensorboard(BasicNoInput: torch.nn.Module, tmp_path: Path) -> None:
     data = dataloader()
-    model = BasicQNN
+    model = BasicNoInput
 
     loss_fn, optimizer = setup_model(model)
-
-    def plot_model(model: QuantumModel, iteration: int) -> tuple[str, Figure]:
-        descr = f"model_prediction_epoch_{iteration}.png"
-        fig, ax = plt.subplots()
-        x = torch.linspace(0, 1, 100).reshape(-1, 1)
-        out = model.expectation(x)
-        ax.plot(x.detach().numpy(), out.detach().numpy())
-        return descr, fig
 
     def plot_error(model: QuantumModel, iteration: int) -> tuple[str, Figure]:
         descr = f"error_epoch_{iteration}.png"
         fig, ax = plt.subplots()
         x = torch.linspace(0, 1, 100).reshape(-1, 1)
-        out = model.expectation(x)
+        scalar_out = model()
+        out = scalar_out.expand_as(x)
         ground_truth = torch.rand_like(out)
         error = ground_truth - out
         ax.plot(x.detach().numpy(), error.detach().numpy())
@@ -319,7 +255,7 @@ def test_plotting_tensorboard(BasicQNN: QNN, tmp_path: Path) -> None:
         checkpoint_every=1,
         write_every=1,
         tracking_tool=ExperimentTrackingTool.TENSORBOARD,
-        plotting_functions=(plot_model, plot_error),
+        plotting_functions=(plot_error,),
     )
 
     trainer = Trainer(model, optimizer, config, loss_fn, data)

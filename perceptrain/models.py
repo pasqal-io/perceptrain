@@ -2,33 +2,49 @@ from __future__ import annotations
 
 from functools import singledispatch
 from typing import Any, TypeAlias
-from torch.nn import Module
+from torch.nn import Module, Linear
 from torch import Tensor
 
-Model: Module
-QuantumModel: Module
-QNN: Module
+Model: Module = Module
 
 
-@singledispatch
-def rand_featureparameters(x: Model, *args: Any) -> dict[str, Tensor]:
-    raise NotImplementedError(f"Unable to generate random featureparameters for object {type(x)}.")
+class QuantumModel(Module):
+    """
+    Base class for any quantum-based model.
+
+    Inherits from nn.Module.
+    Subclasses should implement a forward method that handles quantum logic.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def forward(self, x: Tensor) -> Tensor:
+        """
+        Override this method in subclasses to provide.
+
+        the forward pass for your quantum model.
+        """
+        return x
 
 
-@rand_featureparameters.register
-def _(block: Module, batch_size: int = 1) -> dict[str, Tensor]:
-    raise NotImplementedError(
-        f"Unable to generate random featureparameters for object {type(block)}."
-    )
+class QNN(QuantumModel):
+    """
+    A specialized quantum neural network that extends QuantumModel.
 
+    You can define additional layers, parameters, and logic specific
+    to your quantum model here.
+    """
 
-@rand_featureparameters.register
-def _(qm: Module, batch_size: int = 1) -> dict[str, Tensor]:
-    raise NotImplementedError(f"Unable to generate random featureparameters for object {type(qm)}.")
+    def __init__(self) -> None:
+        super().__init__()
 
+    def forward(self, x: Tensor) -> Tensor:
+        """
+        The forward pass for the quantum neural network.
 
-@rand_featureparameters.register
-def _(qnn: Module, batch_size: int = 1) -> dict[str, Tensor]:
-    raise NotImplementedError(
-        f"Unable to generate random featureparameters for object {type(qnn)}."
-    )
+        Replace with your actual quantum circuit logic if you have a
+        quantum simulator or hardware integration. This example just
+        passes x through a classical linear layer.
+        """
+        return x

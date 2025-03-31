@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import torch.nn as nn
 from pytest import fixture  # type: ignore
-from torch import Tensor, tensor
+from torch import Tensor, tensor, complex64
 
 
 class BasicNetwork(nn.Module):
