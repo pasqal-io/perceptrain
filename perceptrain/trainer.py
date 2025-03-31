@@ -76,7 +76,7 @@ class Trainer(BaseTrainer):
             logging behavior.
 
     Examples:
-
+    IMP: This uses qadence models (QNN), and should be used carefully.
     ```python
     import torch
     from torch.optim import SGD

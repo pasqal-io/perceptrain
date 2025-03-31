@@ -26,9 +26,9 @@ Welcome to the `perceptrain` documentation. This library is designed to streamli
 
 To dive in, explore the detailed sections below:
 
-  - [perceptrain Trainer Guide](./trainer.md)
-  - [Training Configuration](./data_and_config.md)
-  - [Callbacks for Trainer](./callbacks.md)
-  - [Accelerator for Distributed Training](./accelerator_doc.md)
-  - [Training on GPU with Trainer](./GPU.md)
-  - [Training on CPU with Trainer](./CPU.md)
+  - [perceptrain Trainer Guide](./training/intro.md)
+  - [Training Configuration](./dataconfig/intro.md)
+  - [Callbacks for Trainer](./callbacks/intro.md)
+  - [Accelerator for Distributed Training](./distributed/accelerator_doc.md)
+  - [Training on GPU with Trainer](./distributed/GPU.md)
+  - [Training on CPU with Trainer](./distributed/CPU.md)

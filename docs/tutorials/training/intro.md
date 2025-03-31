@@ -5,10 +5,6 @@ The [`Trainer`][perceptrain.Trainer] class in `perceptrain` is a versatile tool 
 It offers flexibility for both gradient-based and gradient-free optimization methods, supports custom loss functions, and integrates seamlessly with tracking tools like TensorBoard and MLflow.
 Additionally, it provides hooks for implementing custom behaviors during the training process.
 
-For training QML models, perceptrain offers this out-of-the-box [`Trainer`][perceptrain.Trainer] for optimizing differentiable
-models, _e.g._ `QNN`s and `QuantumModel`, containing either *trainable* and/or *non-trainable* parameters
-(see [the parameters tutorial](../../../content/parameters.md) for detailed information about parameter types):
-
 ---
 
 ## Overview
