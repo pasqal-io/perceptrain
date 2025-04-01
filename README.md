@@ -49,7 +49,7 @@ pip install perceptrain
 
 The default, pre-installed backend for perceptrain is [PyQTorch](https://github.com/pasqal-io/pyqtorch), a differentiable state vector simulator. It is possible to install additional following extras:
 
-* `mlflow`: Foe experiment tracking.
+* `mlflow`: For experiment tracking.
 
 To install individual extras, use the following syntax (**IMPORTANT** Make sure to use quotes):
 
