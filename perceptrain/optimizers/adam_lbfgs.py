@@ -68,9 +68,6 @@ class AdamLBFGS(Optimizer):
         self._adam.load_state_dict(state_dict['adam_state'])
         if self._switched:
             self._lbfgs.load_state_dict(state_dict['lbfgs_state'])
-            
-        # Load param_groups
-        self.param_groups = state_dict['param_groups']
     
 
     def step(self, closure: Callable=None):
