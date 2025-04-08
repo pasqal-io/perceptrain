@@ -4,6 +4,8 @@ import torch.nn as nn
 from pytest import fixture  # type: ignore
 from torch import Tensor, tensor, complex64
 
+from perceptrain.optimizers import AdamLBFGS
+
 
 class BasicNetwork(nn.Module):
     def __init__(self, n_neurons: int = 5) -> None:
@@ -41,3 +43,8 @@ def Basic() -> nn.Module:
 @fixture
 def BasicNoInput() -> nn.Module:
     return BasicNetworkNoInput()
+
+
+@fixture
+def adamlbfgs_optimizer(Basic: BasicNetwork) -> AdamLBFGS:
+    return AdamLBFGS(Basic.parameters(), switch_epoch=5)
