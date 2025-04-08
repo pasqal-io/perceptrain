@@ -46,5 +46,5 @@ def BasicNoInput() -> nn.Module:
 
 
 @fixture
-def adamlbfgs_optimizer(Basic: BasicNetwork) -> AdamLBFGS:
+def adamlbfgs_optimizer(Basic: nn.Module) -> AdamLBFGS:
     return AdamLBFGS(Basic.parameters(), switch_epoch=5)
