@@ -30,7 +30,7 @@ dependencies = [
     "rich",
     "tensorboard>=2.12.0",
     "nevergrad",
-    "pyqtorch==1.7.3",
+    "pyqtorch==1.7.5",
     "pyyaml",
     "matplotlib",
 ]
