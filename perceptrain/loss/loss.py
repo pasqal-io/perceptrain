@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from typing import Callable, Protocol
+from typing import Callable
 
 import torch
 import torch.nn as nn
 
-
-class Loss(Protocol):
-    def __call__(
-        self, model: nn.Module, batch: tuple[torch.Tensor, torch.Tensor]
-    ) -> tuple[torch.Tensor, dict[str, float]]: ...
+Loss = Callable[
+    [nn.Module, tuple[torch.Tensor, torch.Tensor]], tuple[torch.Tensor, dict[str, float]]
+]
 
 
 class MSELoss:
@@ -70,7 +68,7 @@ class CrossEntropyLoss:
         return loss, metrics
 
 
-def get_loss(loss: str | Callable | None) -> Callable:
+def get_loss(loss: str | Loss | None) -> Callable:
     """
     Returns the appropriate loss function based on the input argument.
 
