@@ -7,7 +7,6 @@ import torch
 from torch.nn import Module
 from torch.optim import Optimizer
 
-from perceptrain.data import data_to_device
 from perceptrain.parameters import set_parameters
 from perceptrain.tensors import promote_to_tensor
 
@@ -46,8 +45,8 @@ def optimize_step(
         # because e.g. LBFGS calls this closure multiple times but for some
         # reason the returned loss is always the first one...
         nonlocal metrics, loss
-        optimizer.zero_grad()
         loss, metrics = loss_fn(model, xs)
+        optimizer.zero_grad()
         loss.backward(retain_graph=True)
         return loss.item()
 
