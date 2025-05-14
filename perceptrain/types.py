@@ -150,4 +150,4 @@ class ExecutionType(StrEnum):
 
 Batch = tuple[Tensor, Tensor] | dict[str, Tensor]
 LoggablePlotFunction = Callable[[nn.Module, int], tuple[str, Figure]]
-Loss = Callable[[nn.Module, Batch], tuple[Tensor, dict[str, float]]]
+Loss = Callable[[nn.Module, Batch], tuple[Tensor, dict[str, Tensor]]]
