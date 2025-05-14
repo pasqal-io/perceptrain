@@ -5,10 +5,10 @@ from enum import Enum
 from typing import Callable, Iterable, Tuple, Union
 
 import numpy as np
+import torch.nn as nn
 from matplotlib.figure import Figure
 from numpy.typing import ArrayLike
 from torch import Tensor, pi
-from torch.nn import Module
 
 TNumber = Union[int, float, complex, np.int64, np.float64]
 """Union of python and numpy numeric types."""
@@ -43,9 +43,9 @@ __all__ = [
 ]  # type: ignore
 
 # Basic models for trainer
-Model = Module
-QuantumModel = Module
-QNN = Module
+Model = nn.Module
+QuantumModel = nn.Module
+QNN = nn.Module
 
 
 class StrEnum(str, Enum):
@@ -148,4 +148,5 @@ class ExecutionType(StrEnum):
     """Default distribution execution."""
 
 
-LoggablePlotFunction = Callable[[Module, int], tuple[str, Figure]]
+LoggablePlotFunction = Callable[[nn.Module, int], tuple[str, Figure]]
+Loss = Callable[[nn.Module, tuple[Tensor, Tensor]], tuple[Tensor, dict[str, float]]]

@@ -5,9 +5,7 @@ from typing import Callable
 import torch
 import torch.nn as nn
 
-Loss = Callable[
-    [nn.Module, tuple[torch.Tensor, torch.Tensor]], tuple[torch.Tensor, dict[str, float]]
-]
+from perceptrain.types import Loss
 
 
 class MSELoss:
