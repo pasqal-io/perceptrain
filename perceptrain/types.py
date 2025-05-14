@@ -148,5 +148,6 @@ class ExecutionType(StrEnum):
     """Default distribution execution."""
 
 
+Batch = tuple[Tensor, Tensor] | dict[str, Tensor]
 LoggablePlotFunction = Callable[[nn.Module, int], tuple[str, Figure]]
-Loss = Callable[[nn.Module, tuple[Tensor, Tensor]], tuple[Tensor, dict[str, float]]]
+Loss = Callable[[nn.Module, Batch], tuple[Tensor, dict[str, float]]]
