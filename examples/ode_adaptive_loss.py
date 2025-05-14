@@ -2,6 +2,7 @@
 #
 # df/dx = 5(4x^3 + x^2 - 2x - 0.5)
 # f(0) = 0
+# x \in [-1, 1]
 #
 
 from __future__ import annotations
@@ -9,6 +10,9 @@ from __future__ import annotations
 from typing import Callable, Iterator
 
 import torch
+from torch.utils.data.dataloader import DataLoader
+
+from perceptrain.data import DictDataLoader, to_dataloader
 
 
 class FFNN(torch.nn.Module):
@@ -104,21 +108,61 @@ class GradWeightedLoss:
         return loss, metrics
 
 
-def main():
-    def ode_rhs(x: torch.Tensor) -> torch.Tensor:
-        return 5 * (4 * x**3 + x**2 - 2 * x - 0.5)
+def evaluate_ode(x: torch.Tensor, model: torch.nn.Module) -> torch.Tensor:
+    dudx = torch.autograd.grad(
+        outputs=model(x),
+        inputs=x,
+        grad_outputs=torch.ones_like(x),
+        create_graph=True,
+        retain_graph=True,
+    )[0]
+    return dudx - 5 * (4 * x**3 + x**2 - 2 * x - 0.5)
 
+
+def evaluate_bc(x: torch.Tensor, model: torch.nn.Module) -> torch.Tensor:
+    return model(x)  # - 0.0
+
+
+def make_problem_dataloaders(
+    model: torch.nn.Module, batch_sizes: dict[str, int]
+) -> tuple[DataLoader, DataLoader]:
+    x_interior = torch.rand(size=(100, 1), requires_grad=True) * 2 - 1  # points in [-1, 1]
+    x_bc = torch.tensor([0.0])
+
+    return (
+        to_dataloader(
+            x_interior,
+            evaluate_ode(x_interior, model),
+            batch_size=batch_sizes["ode"],
+            infinite=True,
+        ),
+        to_dataloader(
+            x_bc,
+            evaluate_bc(x_bc, model),
+            batch_size=batch_sizes["bc"],
+            infinite=True,
+        ),
+    )
+
+
+def main():
     model = FFNN(layers=[1, 10, 10, 10, 1])
 
-    def ode_lhs(x: torch.Tensor) -> torch.Tensor:
-        grad = torch.autograd.grad(
-            outputs=model(x),
-            inputs=x,
-            grad_outputs=torch.ones_like(x),
-            create_graph=True,
-            retain_graph=True,
-        )[0]
-        return grad
+    # dataloader(s)
+    dl_ode, dl_bc = make_problem_dataloaders(model, batch_sizes={"ode": 10, "bc": 1})
+    ddl = DictDataLoader(dataloaders={"ode": dl_ode, "bc": dl_bc})
+
+    # optimizer and loss
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
+    loss = GradWeightedLoss(
+        batch=next(ddl),
+        optimizer=optimizer,
+        gradient_weights={"ode": 1.0, "bc": 1.0},
+        fixed_metric="ode",
+    )
+
+    # callbacks
+    # train
 
 
 if __name__ == "__main__":
