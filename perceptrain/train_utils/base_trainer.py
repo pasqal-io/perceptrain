@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from perceptrain.callbacks import CallbacksManager
 from perceptrain.config import TrainConfig
 from perceptrain.data import DictDataLoader
-from perceptrain.loss import get_loss_fn
+from perceptrain.loss import get_loss
 from perceptrain.optimize_step import optimize_step
 from perceptrain.parameters import get_parameters
 from perceptrain.stages import TrainingStage
@@ -117,7 +117,7 @@ class BaseTrainer:
         self.val_dataloader = val_dataloader
         self.test_dataloader = test_dataloader
 
-        self.loss_fn: Callable = get_loss_fn(loss_fn)
+        self.loss_fn: Callable = get_loss(loss_fn)
         self.optimize_step: Callable = optimize_step
         self.ng_params: ng.p.Array
         self.training_stage: TrainingStage = TrainingStage("idle")
