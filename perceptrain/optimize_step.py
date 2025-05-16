@@ -7,7 +7,6 @@ import torch
 from torch.nn import Module
 from torch.optim import Optimizer
 
-from perceptrain.data import data_to_device
 from perceptrain.parameters import set_parameters
 from perceptrain.tensors import promote_to_tensor
 
