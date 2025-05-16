@@ -1,4 +1,5 @@
-# Aim: train a neural network to learn the solution of the following ODE
+# Aim: train a neural network to learn the solution of the following ODE.
+# Uses the gradient-normalized loss technique in https://arxiv.org/abs/2001.04536
 #
 # df/dx = 5(4x^3 + x^2 - 2x - 0.5)
 # f(0) = 0
@@ -151,6 +152,23 @@ def make_problem_dataloaders(
     )
 
 
+def print_gradient_weights(trainer: Any, config: TrainConfig, writer: BaseWriter) -> Any:
+    print(
+        f"Epoch: {trainer.current_epoch};"
+        f" ODE weight: {trainer.loss_fn.gradient_weights['ode']:8.4f},"
+        f" BC weight: {trainer.loss_fn.gradient_weights['bc']:8.4f}"
+    )
+
+
+def print_metrics_and_loss(trainer: Any, config: TrainConfig, writer: BaseWriter) -> Any:
+    print(
+        f"Epoch: {trainer.current_epoch};"
+        f" Loss: {trainer.opt_result.loss:8.4f},"
+        f" ODE loss: {trainer.opt_result.metrics['train_ode']:8.4f}"
+        f" BC loss: {trainer.opt_result.metrics['train_bc']:8.4f}"
+    )
+
+
 def main():
     SEED = 42
 
@@ -172,22 +190,6 @@ def main():
         gradient_weights={"ode": 1.0, "bc": 1.0},
         fixed_metric="ode",
     )
-
-    # callbacks
-    def print_gradient_weights(trainer: Any, config: TrainConfig, writer: BaseWriter) -> Any:
-        print(
-            f"Epoch: {trainer.current_epoch};"
-            f" ODE weight: {trainer.loss_fn.gradient_weights['ode']:8.4f},"
-            f" BC weight: {trainer.loss_fn.gradient_weights['bc']:8.4f}"
-        )
-
-    def print_metrics_and_loss(trainer: Any, config: TrainConfig, writer: BaseWriter) -> Any:
-        print(
-            f"Epoch: {trainer.current_epoch};"
-            f" Loss: {trainer.opt_result.loss:8.4f},"
-            f" ODE loss: {trainer.opt_result.metrics['train_ode']:8.4f}"
-            f" BC loss: {trainer.opt_result.metrics['train_bc']:8.4f}"
-        )
 
     callback_weights = Callback(on="train_epoch_end", callback=print_gradient_weights)
     callback_metrics_loss = Callback(on="train_epoch_end", callback=print_metrics_and_loss)
