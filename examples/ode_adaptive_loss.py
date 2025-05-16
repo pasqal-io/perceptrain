@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 import random
-from typing import Callable
 
 import nevergrad as ng
 import numpy as np
@@ -20,28 +19,19 @@ from torch.utils.data.dataloader import DataLoader
 from perceptrain import TrainConfig, Trainer
 from perceptrain.callbacks import Callback
 from perceptrain.data import DictDataLoader, to_dataloader
+from perceptrain.models import FFNN
 from perceptrain.parameters import num_parameters
 
 
-class FFNN(torch.nn.Module):
-    def __init__(self, layers: list[int], activation_function: Callable = torch.nn.GELU) -> None:
-        super().__init__()
-        if len(layers) < 2:
-            raise ValueError("You must specify at least one input and one output layer.")
-
-        self.layers = layers
-        self.activation_function = activation_function
-
-        sequence = []
-        for n_i, n_o in zip(self.layers[:-2], self.layers[1:-1]):
-            sequence.append(torch.nn.Linear(n_i, n_o))
-            sequence.append(self.activation_function())
-
-        sequence.append(torch.nn.Linear(self.layers[-2], self.layers[-1]))
-        self.nn = torch.nn.Sequential(*sequence)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.nn(x)
+def parse_arguments() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--nograd",
+        help="Run with a gradient-free optimizer.",
+        action="store_true",
+    )
+    args = parser.parse_args()
+    return args
 
 
 def mse(residuals: torch.Tensor) -> torch.Tensor:
@@ -171,17 +161,6 @@ def print_metrics_and_loss(trainer: Any, config: TrainConfig, writer: BaseWriter
         f" ODE loss: {trainer.opt_result.metrics['train_ode']:8.4f}"
         f" BC loss: {trainer.opt_result.metrics['train_bc']:8.4f}"
     )
-
-
-def parse_arguments() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--nograd",
-        help="Run with a gradient-free optimizer.",
-        action="store_true",
-    )
-    args = parser.parse_args()
-    return args
 
 
 def main():
