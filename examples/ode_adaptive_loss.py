@@ -7,16 +7,21 @@
 
 from __future__ import annotations
 
-from typing import Callable, Iterator
+import random
+from typing import Callable
 
+import numpy as np
 import torch
 from torch.utils.data.dataloader import DataLoader
 
+from perceptrain import TrainConfig, Trainer
+from perceptrain.callbacks import Callback
 from perceptrain.data import DictDataLoader, to_dataloader
 
 
 class FFNN(torch.nn.Module):
     def __init__(self, layers: list[int], activation_function: Callable = torch.nn.GELU) -> None:
+        super().__init__()
         if len(layers) < 2:
             raise ValueError("You must specify at least one input and one output layer.")
 
@@ -35,8 +40,8 @@ class FFNN(torch.nn.Module):
         return self.nn(x)
 
 
-def mse(batch_values: torch.Tensor) -> torch.Tensor:
-    return torch.mean(torch.sum(batch_values**2, dim=1), dim=0)
+def mse(residuals: torch.Tensor) -> torch.Tensor:
+    return torch.mean(residuals**2)
 
 
 class GradWeightedLoss:
@@ -58,7 +63,7 @@ class GradWeightedLoss:
     def _update_metrics_gradients(
         self,
         metrics: dict[str, torch.Tensor],
-        model_parameters: Iterator[tuple[str, torch.nn.parameter.Parameter]],
+        model_parameters: list[tuple[str, torch.nn.parameter.Parameter]],
     ) -> None:
         self.optimizer.zero_grad()
         for key, metric in metrics.items():
@@ -101,8 +106,9 @@ class GradWeightedLoss:
     def __call__(
         self, model: torch.nn.Module, batch: dict[str, torch.Tensor]
     ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
-        loss, metrics = self._compute_unweighted_metrics_and_loss(model(batch))
-        self._update_metrics_gradients(metrics, model.named_parameters())
+        features = {term: model(sample[0]) for term, sample in batch.items()}
+        loss, metrics = self._compute_unweighted_metrics_and_loss(features)
+        self._update_metrics_gradients(metrics, list(model.named_parameters()))
         loss, metrics = self._gradient_norm_weighting(metrics)
 
         return loss, metrics
@@ -146,6 +152,12 @@ def make_problem_dataloaders(
 
 
 def main():
+    SEED = 42
+
+    random.seed(SEED)
+    np.random.seed(SEED)
+    torch.manual_seed(SEED)
+
     model = FFNN(layers=[1, 10, 10, 10, 1])
 
     # dataloader(s)
@@ -155,14 +167,37 @@ def main():
     # optimizer and loss
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
     loss = GradWeightedLoss(
-        batch=next(ddl),
+        batch=next(iter(ddl)),
         optimizer=optimizer,
         gradient_weights={"ode": 1.0, "bc": 1.0},
         fixed_metric="ode",
     )
 
     # callbacks
-    # train
+    def print_gradient_weights(trainer: Any, config: TrainConfig, writer: BaseWriter) -> Any:
+        print(
+            f"Epoch: {trainer.current_epoch};"
+            f" ODE weight: {trainer.loss_fn.gradient_weights['ode']:8.4f},"
+            f" BC weight: {trainer.loss_fn.gradient_weights['bc']:8.4f}"
+        )
+
+    def print_metrics_and_loss(trainer: Any, config: TrainConfig, writer: BaseWriter) -> Any:
+        print(
+            f"Epoch: {trainer.current_epoch};"
+            f" Loss: {trainer.opt_result.loss:8.4f},"
+            f" ODE loss: {trainer.opt_result.metrics['train_ode']:8.4f}"
+            f" BC loss: {trainer.opt_result.metrics['train_bc']:8.4f}"
+        )
+
+    callback_weights = Callback(on="train_epoch_end", callback=print_gradient_weights)
+    callback_metrics_loss = Callback(on="train_epoch_end", callback=print_metrics_and_loss)
+
+    # config and trainer
+    train_config = TrainConfig(max_iter=100, callbacks=[callback_weights, callback_metrics_loss])
+    trainer = Trainer(model, optimizer, train_config, loss_fn=loss)
+
+    # fit
+    trainer.fit(train_dataloader=ddl)
 
 
 if __name__ == "__main__":
