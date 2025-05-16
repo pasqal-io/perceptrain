@@ -193,8 +193,12 @@ def main():
         fixed_metric="ode",
     )
 
-    callback_weights = Callback(on="train_epoch_end", callback=print_gradient_weights)
-    callback_metrics_loss = Callback(on="train_epoch_end", callback=print_metrics_and_loss)
+    callback_weights = Callback(
+        on="train_epoch_end", callback=print_gradient_weights, called_every=10
+    )
+    callback_metrics_loss = Callback(
+        on="train_epoch_end", callback=print_metrics_and_loss, called_every=10
+    )
 
     # config and trainer
     train_config = TrainConfig(max_iter=100, callbacks=[callback_weights, callback_metrics_loss])
