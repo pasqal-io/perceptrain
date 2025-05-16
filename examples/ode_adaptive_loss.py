@@ -8,9 +8,11 @@
 
 from __future__ import annotations
 
+import argparse
 import random
 from typing import Callable
 
+import nevergrad as ng
 import numpy as np
 import torch
 from torch.utils.data.dataloader import DataLoader
@@ -18,6 +20,7 @@ from torch.utils.data.dataloader import DataLoader
 from perceptrain import TrainConfig, Trainer
 from perceptrain.callbacks import Callback
 from perceptrain.data import DictDataLoader, to_dataloader
+from perceptrain.parameters import num_parameters
 
 
 class FFNN(torch.nn.Module):
@@ -49,7 +52,7 @@ class GradWeightedLoss:
     def __init__(
         self,
         batch: dict[str, torch.Tensor],
-        optimizer: torch.optim.Optimizer,
+        optimizer: torch.optim.Optimizer | ng.optimization.Optimizer,
         gradient_weights: dict[str, float | torch.Tensor],
         fixed_metric: str,
         alpha: float = 0.9,
@@ -66,7 +69,8 @@ class GradWeightedLoss:
         metrics: dict[str, torch.Tensor],
         model_parameters: list[tuple[str, torch.nn.parameter.Parameter]],
     ) -> None:
-        self.optimizer.zero_grad()
+        if isinstance(self.optimizer, torch.optim.Optimizer):
+            self.optimizer.zero_grad()
         for key, metric in metrics.items():
             metric.backward(retain_graph=True)
             self.gradients[key] = {
@@ -169,8 +173,22 @@ def print_metrics_and_loss(trainer: Any, config: TrainConfig, writer: BaseWriter
     )
 
 
+def parse_arguments() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--nograd",
+        help="Run with a gradient-free optimizer.",
+        action="store_true",
+    )
+    args = parser.parse_args()
+    return args
+
+
 def main():
     SEED = 42
+    MAX_ITER = 100
+
+    cli_args = parse_arguments()
 
     random.seed(SEED)
     np.random.seed(SEED)
@@ -183,7 +201,12 @@ def main():
     ddl = DictDataLoader(dataloaders={"ode": dl_ode, "bc": dl_bc})
 
     # optimizer and loss
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
+    if cli_args.nograd:
+        optimizer = ng.optimizers.NGOpt(parametrization=num_parameters(model), budget=MAX_ITER)
+        Trainer.set_use_grad(False)
+    else:
+        optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
+
     loss = GradWeightedLoss(
         batch=next(iter(ddl)),
         optimizer=optimizer,
