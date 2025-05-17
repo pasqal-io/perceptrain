@@ -9,6 +9,24 @@
 
 from __future__ import annotations
 
+import argparse
+
+
+def parse_arguments() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--nograd",
+        help="Run with a gradient-free optimizer.",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--beta",
+        help="Wave propagation speed.",
+        default=10.0,
+    )
+    args = parser.parse_args()
+    return args
+
 
 def main():
     pass
