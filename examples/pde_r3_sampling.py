@@ -16,7 +16,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from perceptrain.callbacks import Callback
-from perceptrain.data import DictDataLoader, GenerativeLabelledFixedDataset
+from perceptrain.data import DictDataLoader, GenerativeFixedDataset
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -38,8 +38,8 @@ def parse_arguments() -> argparse.Namespace:
 class R3Sampling(Callback):
     def __init__(
         self,
-        initial_dataset: GenerativeLabelledFixedDataset,
-        fitness_function: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] | None = None,
+        initial_dataset: GenerativeFixedDataset,
+        fitness_function: Callable[[torch.Tensor, torch.nn.Module], torch.Tensor],
         threshold: float = 0.1,
         dataloader_key: str | None = None,
     ):
@@ -55,47 +55,34 @@ class R3Sampling(Callback):
         self.dataset = initial_dataset
 
         self.n_samples_total = len(initial_dataset)
-        self.n_features = initial_dataset.tensors[0].size(dim=1)
+        self.n_features = initial_dataset.features.size(1)
         self.threshold = threshold
-        self.fitness_function = fitness_function if fitness_function else self._squared_error
+        self.fitness_function = fitness_function
         self.dataloader_key = dataloader_key
 
         self.n_retained = 0
         super().__init__(on="train_epoch_start")
 
-    @staticmethod
-    def _squared_error(predictions: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-        return (predictions - labels) ** 2
-
-    def _sample_uniform(self, n_samples: int) -> torch.Tensor:
-        """Random uniform sampling in [0, 1]."""
-        return torch.rand(size=(n_samples, self.n_features))
-
     def run_callback(self, trainer: Any, config: TrainConfig, writer: BaseWriter) -> None:
         """Eventually make a new dataloader from a dataset.__init__() call."""
-        features, labels = self.dataset.tensors[0], self.dataset.tensors[1]
-
         # Compute fitness function on all samples
-        predictions = trainer.model(features)
-        fitnesses = self.fitness_function(predictions, labels)
+        fitnesses = self.fitness_function(self.dataset.features, trainer.model)
 
         # Retain
         retained = fitnesses > self.threshold
         self.n_retained = len(retained)
 
         # Resample
-        new_features = self._sample_uniform(n_samples=self.n_samples_total - self.n_retained)
+        resampled = self.dataset.proba_dist(self.n_samples_total - self.n_retained)
 
         # Release
-        self.features = torch.where(retained, features, new_features)
-
-        # Compute labels
-        self.labels = self.dataset.labelling_function(self.features)
+        new_features = torch.where(retained, self.dataset.features, resampled)
 
         # Update the dataset
-        self.dataset.tensors = self.features, self.labels
+        self.dataset.features = new_features
 
-        # Update dataloader of the trainer with the re-sampled dataset
+        # Update dataloader of the trainer with the re-sampled dataset.
+        # NOTE a bit of un ugly hack...
         if isinstance(trainer.dataloader, DataLoader):
             trainer.dataloader.dataset = self.dataset
         elif isinstance(trainer.dataloader, DictDataLoader):
@@ -123,10 +110,9 @@ def main():
     N_SAMPLES_TOTAL = 100
 
     # dataset
-    ds = GenerativeLabelledFixedDataset(
+    ds = GenerativeFixedDataset(
         proba_dist=timespace1d_distribution,
         n_samples=N_SAMPLES_TOTAL,
-        labelling_function=zero_residual,
     )
 
 
