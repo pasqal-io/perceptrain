@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import random
+from typing import Callable
 
 import nevergrad as ng
 import numpy as np
@@ -36,6 +37,20 @@ def parse_arguments() -> argparse.Namespace:
 
 def mse(residuals: torch.Tensor) -> torch.Tensor:
     return torch.mean(residuals**2)
+
+
+class PINN(torch.nn.Module):
+    def __init__(
+        self,
+        nn: torch.nn.Module,
+        equations: dict[str, Callable[[torch.Tensor, torch.nn.Module], torch.Tensor]],
+    ) -> None:
+        super().__init__()
+        self.nn = nn
+        self.equations = equations
+
+    def forward(self, x: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
+        return {key: self.equations[key](x_i, self.nn) for key, x_i in x.items()}
 
 
 class GradWeightedLoss:
@@ -99,9 +114,9 @@ class GradWeightedLoss:
         return loss, metrics
 
     def __call__(
-        self, model: torch.nn.Module, batch: dict[str, torch.Tensor]
+        self, model: PINN, batch: dict[str, torch.Tensor]
     ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
-        features = {term: model(sample[0]) for term, sample in batch.items()}
+        features = model({key: b_i[0] for key, b_i in batch.items()})
         loss, metrics = self._compute_unweighted_metrics_and_loss(features)
         self._update_metrics_gradients(metrics, list(model.named_parameters()))
         loss, metrics = self._gradient_norm_weighting(metrics)
@@ -131,13 +146,11 @@ def make_problem_dataloaders(batch_sizes: dict[str, int]) -> tuple[DataLoader, D
     return (
         to_dataloader(
             x_interior,
-            torch.zeros(size=(len(x_interior),)),
             batch_size=batch_sizes["ode"],
             infinite=True,
         ),
         to_dataloader(
             x_bc,
-            torch.zeros(size=(len(x_bc),)),
             batch_size=batch_sizes["bc"],
             infinite=True,
         ),
@@ -163,7 +176,7 @@ def print_metrics_and_loss(trainer: Any, config: TrainConfig, writer: BaseWriter
 
 def main():
     SEED = 42
-    MAX_ITER = 100
+    MAX_ITER = 10_000
 
     cli_args = parse_arguments()
 
@@ -171,7 +184,12 @@ def main():
     np.random.seed(SEED)
     torch.manual_seed(SEED)
 
-    model = FFNN(layers=[1, 10, 10, 10, 1])
+    nn = FFNN(layers=[1, 10, 10, 10, 1])
+    equations = {
+        "ode": evaluate_ode,
+        "bc": evaluate_bc,
+    }
+    model = PINN(nn, equations)
 
     # dataloader(s)
     dl_ode, dl_bc = make_problem_dataloaders(batch_sizes={"ode": 10, "bc": 1})
@@ -192,14 +210,16 @@ def main():
     )
 
     callback_weights = Callback(
-        on="train_epoch_end", callback=print_gradient_weights, called_every=10
+        on="train_epoch_end", callback=print_gradient_weights, called_every=1000
     )
     callback_metrics_loss = Callback(
-        on="train_epoch_end", callback=print_metrics_and_loss, called_every=10
+        on="train_epoch_end", callback=print_metrics_and_loss, called_every=1000
     )
 
     # config and trainer
-    train_config = TrainConfig(max_iter=100, callbacks=[callback_weights, callback_metrics_loss])
+    train_config = TrainConfig(
+        max_iter=MAX_ITER, callbacks=[callback_weights, callback_metrics_loss]
+    )
     trainer = Trainer(model, optimizer, train_config, loss_fn=loss)
 
     # fit
