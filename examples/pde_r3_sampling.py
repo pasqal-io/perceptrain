@@ -19,12 +19,6 @@ from perceptrain.data import DictDataLoader, GenerativeLabelledFixedDataset
 from perceptrain.loss.loss import MSELoss
 from perceptrain.types import Loss
 
-"""The R3 logic should be a callback.
-
-Generalize to resampling from a continuous proba dist (or actually a function,
-which does not need to be in (0, 1) and integrate to 1.
-"""
-
 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -110,8 +104,26 @@ class R3Sampling(Callback):
                 )
 
 
+def timespace1d_distribution(n: int = 1) -> torch.Tensor:
+    """Random uniform distribution over [0, 1] X [0, 2*pi]."""
+    ts = torch.rand(size=(n,))  # \in [0, 1]
+    xs = torch.rand(size=(n,)) * 2 * torch.pi  # \in [0, 2\pi]
+    return torch.cat((ts, xs), dim=1)
+
+
+def zero_residual(x: torch.Tensor) -> torch.Tensor:
+    return torch.zeros(size=(len(x),))
+
+
 def main():
-    pass
+    N_SAMPLES_TOTAL = 100
+
+    # dataset
+    ds = GenerativeLabelledFixedDataset(
+        proba_dist=timespace1d_distribution,
+        n_samples=N_SAMPLES_TOTAL,
+        labelling_function=zero_residual,
+    )
 
 
 if __name__ == "__main__":

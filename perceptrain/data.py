@@ -92,7 +92,7 @@ class InfiniteTensorDataset(IterableDataset):
 class GenerativeLabelledFixedDataset(TensorDataset):
     def __init__(
         self,
-        proba_dist: Callable[[int | None], Tensor],
+        proba_dist: Callable[[int], Tensor],
         n_samples: int,
         labelling_function: Callable[[Tensor], Tensor],
     ) -> None:
