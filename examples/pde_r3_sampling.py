@@ -10,8 +10,10 @@
 from __future__ import annotations
 
 import argparse
+import random
 from typing import Callable
 
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
@@ -107,7 +109,15 @@ def zero_residual(x: torch.Tensor) -> torch.Tensor:
 
 
 def main():
+    SEED = 42
     N_SAMPLES_TOTAL = 100
+    MAX_ITER = 10_000
+
+    cli_args = parse_arguments()
+
+    random.seed(SEED)
+    np.random.seed(SEED)
+    torch.manual_seed(SEED)
 
     # dataset
     ds = GenerativeFixedDataset(
