@@ -10,14 +10,13 @@
 from __future__ import annotations
 
 import argparse
+from typing import Callable
 
 import torch
 from torch.utils.data import DataLoader
 
 from perceptrain.callbacks import Callback
 from perceptrain.data import DictDataLoader, GenerativeLabelledFixedDataset
-from perceptrain.loss.loss import MSELoss
-from perceptrain.types import Loss
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -40,7 +39,7 @@ class R3Sampling(Callback):
     def __init__(
         self,
         initial_dataset: GenerativeLabelledFixedDataset,
-        fitness_function: Loss = MSELoss(),
+        fitness_function: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] | None = None,
         threshold: float = 0.1,
         dataloader_key: str | None = None,
     ):
@@ -58,11 +57,15 @@ class R3Sampling(Callback):
         self.n_samples_total = len(initial_dataset)
         self.n_features = initial_dataset.tensors[0].size(dim=1)
         self.threshold = threshold
-        self.fitness_function = fitness_function
+        self.fitness_function = fitness_function if fitness_function else self._squared_error
         self.dataloader_key = dataloader_key
 
         self.n_retained = 0
         super().__init__(on="train_epoch_start")
+
+    @staticmethod
+    def _squared_error(predictions: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+        return (predictions - labels) ** 2
 
     def _sample_uniform(self, n_samples: int) -> torch.Tensor:
         """Random uniform sampling in [0, 1]."""
@@ -73,7 +76,8 @@ class R3Sampling(Callback):
         features, labels = self.dataset.tensors[0], self.dataset.tensors[1]
 
         # Compute fitness function on all samples
-        fitnesses, _ = self.fitness_function(trainer.model, (features, labels))
+        predictions = trainer.model(features)
+        fitnesses = self.fitness_function(predictions, labels)
 
         # Retain
         retained = fitnesses > self.threshold
