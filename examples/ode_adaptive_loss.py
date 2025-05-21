@@ -124,22 +124,20 @@ def evaluate_bc(x: torch.Tensor, model: torch.nn.Module) -> torch.Tensor:
     return model(x)  # - 0.0
 
 
-def make_problem_dataloaders(
-    model: torch.nn.Module, batch_sizes: dict[str, int]
-) -> tuple[DataLoader, DataLoader]:
+def make_problem_dataloaders(batch_sizes: dict[str, int]) -> tuple[DataLoader, DataLoader]:
     x_interior = torch.rand(size=(100, 1), requires_grad=True) * 2 - 1  # points in [-1, 1]
     x_bc = torch.tensor([0.0])
 
     return (
         to_dataloader(
             x_interior,
-            evaluate_ode(x_interior, model),
+            torch.zeros(size=(len(x_interior),)),
             batch_size=batch_sizes["ode"],
             infinite=True,
         ),
         to_dataloader(
             x_bc,
-            evaluate_bc(x_bc, model),
+            torch.zeros(size=(len(x_bc),)),
             batch_size=batch_sizes["bc"],
             infinite=True,
         ),
@@ -176,7 +174,7 @@ def main():
     model = FFNN(layers=[1, 10, 10, 10, 1])
 
     # dataloader(s)
-    dl_ode, dl_bc = make_problem_dataloaders(model, batch_sizes={"ode": 10, "bc": 1})
+    dl_ode, dl_bc = make_problem_dataloaders(batch_sizes={"ode": 10, "bc": 1})
     ddl = DictDataLoader(dataloaders={"ode": dl_ode, "bc": dl_bc})
 
     # optimizer and loss
