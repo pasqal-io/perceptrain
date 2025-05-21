@@ -3,14 +3,14 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass, field
 from functools import singledispatch
-from typing import Any, Iterator
+from typing import Any, Callable, Iterator
 
 from nevergrad.optimization.base import Optimizer as NGOptimizer
 from torch import Tensor
 from torch import device as torch_device
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, IterableDataset, TensorDataset
+from torch.utils.data import DataLoader, Dataset, IterableDataset, TensorDataset
 
 
 @dataclass
@@ -87,6 +87,58 @@ class InfiniteTensorDataset(IterableDataset):
         while True:
             for idx in self.indices:
                 yield tuple(t[idx] for t in self.tensors)
+
+
+class GenerativeFixedDataset(Dataset):
+    def __init__(
+        self,
+        proba_dist: Callable[[int], Tensor],
+        n_samples: int,
+    ) -> None:
+        """Dataset for labelled data generated via a probability distribution.
+
+        Opposite
+        to `GenerativeIterableDataset`, which samples at every iteration,
+        the probability distribution here is sampled once to populate the entire dataset.
+
+        Arguments:
+            proba_dist (ProbabilityDistribution): the probability distribution to be sampled.
+                It is a function of a single argument, i.e. the number of samples.
+            n_samples (int): the number of samples of the dataset.
+        """
+        self.proba_dist = proba_dist
+        self.n_samples = n_samples
+
+        self.features = proba_dist(n_samples)
+
+    def __len__(self) -> int:
+        return self.n_samples
+
+    def __getitem__(self, index: int) -> Tensor:
+        return self.features[index]
+
+
+class GenerativeIterableDataset(IterableDataset):
+    def __init__(
+        self,
+        proba_dist: Callable[[], Tensor],
+    ) -> None:
+        """Dataset for labelled data generated via a probability distribution.
+
+        Samples once per iteration.
+
+        Arguments:
+            proba_dist (ProbabilityDistribution): the probability distribution to be sampled.
+                It is a function of a single argument, i.e. the number of samples.
+            labelling_function (Callable[[torch.Tensor], torch.Tensor]): the function assigning
+                labels to the samples.
+        """
+        self.proba_dist = proba_dist
+
+    def __iter__(self) -> Iterator[Tensor]:
+        while True:
+            x = self.proba_dist()
+            yield x
 
 
 def to_dataloader(*tensors: Tensor, batch_size: int = 1, infinite: bool = False) -> DataLoader:
