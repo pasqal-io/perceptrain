@@ -19,6 +19,7 @@ from torch.utils.data import DataLoader
 
 from perceptrain.callbacks import Callback
 from perceptrain.data import DictDataLoader, GenerativeFixedDataset
+from perceptrain.models import FFNN, PINN
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -104,14 +105,36 @@ def timespace1d_distribution(n: int = 1) -> torch.Tensor:
     return torch.cat((ts, xs), dim=1)
 
 
-def zero_residual(x: torch.Tensor) -> torch.Tensor:
-    return torch.zeros(size=(len(x),))
+def evaluate_pde(x: torch.Tensor, model: torch.nn.Module, beta: float = 1.0):
+    dudt = torch.autograd.grad(
+        outputs=model(x),
+        inputs=x[:, 0],
+        grad_outputs=torch.ones_like(x),
+        create_graph=True,
+        retain_graph=True,
+    )[0]
+    dudx = torch.autograd.grad(
+        outputs=model(x),
+        inputs=x[:, 1],
+        grad_outputs=torch.ones_like(x),
+        create_graph=True,
+        retain_graph=True,
+    )[0]
+    return dudt + beta * dudx
+
+
+def evaluate_periodic_bc(x: torch.Tensor, model: torch.nn.Module):
+    return model(x) - model(torch.cat((x[:, 0], x[:, 1] + 2 * torch.pi), dim=1))
+
+
+def evaluate_initial(x: torch.Tensor, model: torch.nn.Module):
+    return model(x) - torch.sin(x[:, 1])
 
 
 def main():
-    SEED = 42
-    N_SAMPLES_TOTAL = 100
     MAX_ITER = 10_000
+    N_SAMPLES_INTERIOR = 100
+    SEED = 42
 
     cli_args = parse_arguments()
 
@@ -122,8 +145,17 @@ def main():
     # dataset
     ds = GenerativeFixedDataset(
         proba_dist=timespace1d_distribution,
-        n_samples=N_SAMPLES_TOTAL,
+        n_samples=N_SAMPLES_INTERIOR,
     )
+
+    # model
+    nn = FFNN(layers=[2, 20, 20, 20, 1])
+    equations = {
+        "pde": evaluate_pde,
+        "bc": evaluate_periodic_bc,
+        "ic": evaluate_initial,
+    }
+    model = PINN(nn, equations)
 
 
 if __name__ == "__main__":
