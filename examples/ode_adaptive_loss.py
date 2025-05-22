@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 import random
-from typing import Callable
 
 import nevergrad as ng
 import numpy as np
@@ -20,7 +19,7 @@ from torch.utils.data.dataloader import DataLoader
 from perceptrain import TrainConfig, Trainer
 from perceptrain.callbacks import Callback
 from perceptrain.data import DictDataLoader, to_dataloader
-from perceptrain.models import FFNN
+from perceptrain.models import FFNN, PINN
 from perceptrain.parameters import num_parameters
 
 
@@ -37,20 +36,6 @@ def parse_arguments() -> argparse.Namespace:
 
 def mse(residuals: torch.Tensor) -> torch.Tensor:
     return torch.mean(residuals**2)
-
-
-class PINN(torch.nn.Module):
-    def __init__(
-        self,
-        nn: torch.nn.Module,
-        equations: dict[str, Callable[[torch.Tensor, torch.nn.Module], torch.Tensor]],
-    ) -> None:
-        super().__init__()
-        self.nn = nn
-        self.equations = equations
-
-    def forward(self, x: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
-        return {key: self.equations[key](x_i, self.nn) for key, x_i in x.items()}
 
 
 class GradWeightedLoss:

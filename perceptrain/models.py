@@ -69,3 +69,17 @@ class FFNN(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         return self.nn(x)
+
+
+class PINN(nn.Module):
+    def __init__(
+        self,
+        nn: nn.Module,
+        equations: dict[str, Callable[[Tensor, nn.Module], Tensor]],
+    ) -> None:
+        super().__init__()
+        self.nn = nn
+        self.equations = equations
+
+    def forward(self, x: dict[str, Tensor]) -> dict[str, Tensor]:
+        return {key: self.equations[key](x_i, self.nn) for key, x_i in x.items()}
