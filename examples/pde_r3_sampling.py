@@ -13,13 +13,17 @@ import argparse
 import random
 from typing import Callable
 
+import nevergrad as ng
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
+from perceptrain import TrainConfig, Trainer
 from perceptrain.callbacks import Callback
-from perceptrain.data import DictDataLoader, GenerativeFixedDataset
+from perceptrain.data import DictDataLoader, GenerativeFixedDataset, to_dataloader
+from perceptrain.loss.loss import MSELoss
 from perceptrain.models import FFNN, PINN
+from perceptrain.parameters import num_parameters
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -98,14 +102,26 @@ class R3Sampling(Callback):
                 )
 
 
-def timespace1d_distribution(n: int = 1) -> torch.Tensor:
+def interior_uniform(n: int = 1) -> torch.Tensor:
     """Random uniform distribution over [0, 1] X [0, 2*pi]."""
     ts = torch.rand(size=(n,))  # \in [0, 1]
     xs = torch.rand(size=(n,)) * 2 * torch.pi  # \in [0, 2\pi]
     return torch.cat((ts, xs), dim=1)
 
 
-def evaluate_pde(x: torch.Tensor, model: torch.nn.Module, beta: float = 1.0):
+def periodic_boundary_uniform(n: int = 1) -> torch.Tensor:
+    ts = torch.rand(size=(n,))  # \in [0, 1]
+    xs = torch.multinomial(torch.tensor([0.5, 0.5]), n, replacement=True) * 2 * torch.pi
+    return torch.cat((ts, xs), dim=1)
+
+
+def initial_uniform(n: int = 1) -> torch.Tensor:
+    ts = torch.zeros(size=(n,))
+    xs = torch.rand(size=(n,)) * 2 * torch.pi  # \in [0, 2\pi]
+    return torch.cat((ts, xs), dim=1)
+
+
+def evaluate_pde(x: torch.Tensor, model: torch.nn.Module, beta: float = 1.0) -> torch.Tensor:
     dudt = torch.autograd.grad(
         outputs=model(x),
         inputs=x[:, 0],
@@ -132,7 +148,13 @@ def evaluate_initial(x: torch.Tensor, model: torch.nn.Module):
 
 
 def main():
+    BATCH_SIZE_BC = 2
+    BATCH_SIZE_IC = 2
+    BATCH_SIZE_INTERIOR = 20
+    LR = 0.01
     MAX_ITER = 10_000
+    N_SAMPLES_BC = 10
+    N_SAMPLES_IC = 20
     N_SAMPLES_INTERIOR = 100
     SEED = 42
 
@@ -144,9 +166,17 @@ def main():
 
     # dataset
     ds = GenerativeFixedDataset(
-        proba_dist=timespace1d_distribution,
+        proba_dist=interior_uniform,
         n_samples=N_SAMPLES_INTERIOR,
     )
+
+    # dataloader(s)
+    dl_pde = DataLoader(ds, batch_size=BATCH_SIZE_INTERIOR)
+    dl_bc = to_dataloader(
+        periodic_boundary_uniform(N_SAMPLES_BC), batch_size=BATCH_SIZE_BC, infinite=True
+    )
+    dl_ic = to_dataloader(initial_uniform(N_SAMPLES_IC), batch_size=BATCH_SIZE_IC, infinite=True)
+    ddl = DictDataLoader(dataloaders={"pde": dl_pde, "bc": dl_bc, "ic": dl_ic})
 
     # model
     nn = FFNN(layers=[2, 20, 20, 20, 1])
@@ -156,6 +186,15 @@ def main():
         "ic": evaluate_initial,
     }
     model = PINN(nn, equations)
+
+    # optimizer and loss
+    if cli_args.nograd:
+        optimizer = ng.optimizers.NGOpt(parametrization=num_parameters(model), budget=MAX_ITER)
+        Trainer.set_use_grad(False)
+    else:
+        optimizer = torch.optim.Adam(model.parameters(), lr=LR)
+
+    loss = MSELoss()
 
 
 if __name__ == "__main__":
