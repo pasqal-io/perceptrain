@@ -24,6 +24,8 @@ TArray = Union[Iterable, Tensor, np.ndarray]
 TGenerator = Union[Tensor]
 """Union of torch tensors and numpy arrays."""
 
+TBatch = tuple[Tensor, ...] | dict[str, Tensor]
+
 
 PI = pi
 
@@ -148,6 +150,5 @@ class ExecutionType(StrEnum):
     """Default distribution execution."""
 
 
-Batch = tuple[Tensor, Tensor] | dict[str, Tensor]
 LoggablePlotFunction = Callable[[nn.Module, int], tuple[str, Figure]]
-Loss = Callable[[nn.Module, Batch], tuple[Tensor, dict[str, Tensor]]]
+Loss = Callable[[TBatch, nn.Module], tuple[Tensor, dict[str, Tensor]]]
