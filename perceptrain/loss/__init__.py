@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from .loss import CrossEntropyLoss, MSELoss, get_loss
+from .loss import cross_entropy_loss, get_loss, mse_loss
 
 # Modules to be automatically added to the perceptrain.loss namespace
 __all__ = [
-    "CrossEntropyLoss",
+    "cross_entropy_loss",
     "get_loss",
-    "MSELoss",
+    "mse_loss",
 ]

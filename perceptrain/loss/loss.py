@@ -8,62 +8,60 @@ import torch.nn as nn
 from perceptrain.types import Loss
 
 
-class MSELoss:
-    def __call__(
-        self, model: nn.Module, batch: tuple[torch.Tensor, torch.Tensor]
-    ) -> tuple[torch.Tensor, dict[str, float]]:
-        """Computes the Mean Squared Error (MSE) loss between model predictions and targets.
+def mse_loss(
+    model: nn.Module, batch: tuple[torch.Tensor, torch.Tensor]
+) -> tuple[torch.Tensor, dict[str, float]]:
+    """Computes the Mean Squared Error (MSE) loss between model predictions and targets.
 
-           Basically a wrapper of perceptrain around `nn.MSELoss` of pytorch.
+        Basically a wrapper of perceptrain around `nn.MSELoss` of pytorch.
 
-        Args:
-            model (nn.Module): The PyTorch model used for generating predictions.
-            batch (Tuple[torch.Tensor, torch.Tensor]): A tuple containing:
-                - inputs (torch.Tensor): The input data.
-                - targets (torch.Tensor): The ground truth labels.
+    Args:
+        model (nn.Module): The PyTorch model used for generating predictions.
+        batch (Tuple[torch.Tensor, torch.Tensor]): A tuple containing:
+            - inputs (torch.Tensor): The input data.
+            - targets (torch.Tensor): The ground truth labels.
 
-        Returns:
-            Tuple[torch.Tensor, dict[str, float]]:
-                - loss (torch.Tensor): The computed MSE loss value.
-                - metrics (dict[str, float]): A dictionary with the MSE loss value.
-        """
-        criterion = nn.MSELoss()
-        inputs, targets = batch
-        outputs = model(inputs)
-        loss = criterion(outputs, targets)
+    Returns:
+        Tuple[torch.Tensor, dict[str, float]]:
+            - loss (torch.Tensor): The computed MSE loss value.
+            - metrics (dict[str, float]): A dictionary with the MSE loss value.
+    """
+    criterion = nn.MSELoss()
+    inputs, targets = batch
+    outputs = model(inputs)
+    loss = criterion(outputs, targets)
 
-        # TODO consider returning empty metric. Metrics are for components of the loss.
-        metrics = {"mse": loss}
-        return loss, metrics
+    # TODO consider returning empty metric. Metrics are for components of the loss.
+    metrics = {"mse": loss}
+    return loss, metrics
 
 
-class CrossEntropyLoss:
-    def __call__(
-        self, model: nn.Module, batch: tuple[torch.Tensor, torch.Tensor]
-    ) -> tuple[torch.Tensor, dict[str, float]]:
-        """Computes the Cross Entropy loss between model predictions and targets.
+def cross_entropy_loss(
+    model: nn.Module, batch: tuple[torch.Tensor, torch.Tensor]
+) -> tuple[torch.Tensor, dict[str, float]]:
+    """Computes the Cross Entropy loss between model predictions and targets.
 
-        Basically a wrapper of perceptrain around `nn.CrossEntropyLoss` of pytorch.
+    Basically a wrapper of perceptrain around `nn.CrossEntropyLoss` of pytorch.
 
-        Args:
-            model (nn.Module): The PyTorch model used for generating predictions.
-            batch (Tuple[torch.Tensor, torch.Tensor]): A tuple containing:
-                - inputs (torch.Tensor): The input data.
-                - targets (torch.Tensor): The ground truth labels.
+    Args:
+        model (nn.Module): The PyTorch model used for generating predictions.
+        batch (Tuple[torch.Tensor, torch.Tensor]): A tuple containing:
+            - inputs (torch.Tensor): The input data.
+            - targets (torch.Tensor): The ground truth labels.
 
-        Returns:
-            Tuple[torch.Tensor, dict[str, float]]:
-                - loss (torch.Tensor): The computed Cross Entropy loss value.
-                - metrics (dict[str, float]): A dictionary with the Cross Entropy loss value.
-        """
-        criterion = nn.CrossEntropyLoss()
-        inputs, targets = batch
-        outputs = model(inputs)
-        loss = criterion(outputs, targets)
+    Returns:
+        Tuple[torch.Tensor, dict[str, float]]:
+            - loss (torch.Tensor): The computed Cross Entropy loss value.
+            - metrics (dict[str, float]): A dictionary with the Cross Entropy loss value.
+    """
+    criterion = nn.CrossEntropyLoss()
+    inputs, targets = batch
+    outputs = model(inputs)
+    loss = criterion(outputs, targets)
 
-        # TODO consider returning empty metric. Metrics are for components of the loss.
-        metrics = {"cross_entropy": loss}
-        return loss, metrics
+    # TODO consider returning empty metric. Metrics are for components of the loss.
+    metrics = {"cross_entropy": loss}
+    return loss, metrics
 
 
 def get_loss(loss: str | Loss | None) -> Callable:
@@ -88,11 +86,11 @@ def get_loss(loss: str | Loss | None) -> Callable:
         return loss
     elif isinstance(loss, str):
         if loss == "mse":
-            return MSELoss()
+            return mse_loss
         elif loss == "cross_entropy":
-            return CrossEntropyLoss()
+            return cross_entropy_loss
         else:
             raise ValueError(f"Unsupported loss function: {loss}")
     else:
         # default case
-        return MSELoss()
+        return mse_loss
