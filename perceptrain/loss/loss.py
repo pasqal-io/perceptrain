@@ -8,6 +8,10 @@ import torch.nn as nn
 
 from perceptrain.types import Loss
 
+# TODO If the only difference between losses is `criterion`, we can refactor
+# this module
+# TODO Return empty metrics unless the loss has more components (none in this module)
+
 
 @singledispatch
 def mse_loss(batch: Any, model: nn.Module) -> tuple[torch.Tensor, dict[str, float]]:
@@ -22,9 +26,7 @@ def mse_loss(batch: Any, model: nn.Module) -> tuple[torch.Tensor, dict[str, floa
         happens in supervised learning.
 
     Args:
-        batch (Tuple[torch.Tensor, torch.Tensor]): A tuple containing:
-            - inputs (torch.Tensor): The input data.
-            - targets (torch.Tensor): The ground truth labels.
+        batch (Tuple[torch.Tensor, torch.Tensor]): tuple of tensors for the batch.
         model (nn.Module): The PyTorch model used for generating predictions.
 
     Returns:
@@ -42,7 +44,6 @@ def _(batch: tuple[torch.Tensor,], model: nn.Module) -> tuple[torch.Tensor, dict
     outputs = model(inputs)
     loss = criterion(outputs)
 
-    # TODO consider returning empty metric. Metrics are for components of the loss.
     metrics = {"mse": loss}
     return loss, metrics
 
@@ -56,35 +57,54 @@ def _(
     outputs = model(inputs)
     loss = criterion(outputs, targets)
 
-    # TODO consider returning empty metric. Metrics are for components of the loss.
     metrics = {"mse": loss}
     return loss, metrics
 
 
-def cross_entropy_loss(
-    model: nn.Module, batch: tuple[torch.Tensor, torch.Tensor]
-) -> tuple[torch.Tensor, dict[str, float]]:
+@singledispatch
+def cross_entropy_loss(batch: Any, model: nn.Module) -> tuple[torch.Tensor, dict[str, float]]:
     """Computes the Cross Entropy loss between model predictions and targets.
 
     Basically a wrapper of perceptrain around `nn.CrossEntropyLoss` of pytorch.
 
+    The batch can be both a tuple of a single Tensor, or a tuple of two Tensors.
+    In the fist case, the batch is assumed to contain only the model inputs, as it
+    happens in unsupervised or semi-supervised learning.
+    In the second case, the bach is assumed to contain model inputs and labels, as it
+    happens in supervised learning.
+
     Args:
+        batch (Tuple[torch.Tensor, torch.Tensor]): tuple of tensors for the batch.
         model (nn.Module): The PyTorch model used for generating predictions.
-        batch (Tuple[torch.Tensor, torch.Tensor]): A tuple containing:
-            - inputs (torch.Tensor): The input data.
-            - targets (torch.Tensor): The ground truth labels.
 
     Returns:
         Tuple[torch.Tensor, dict[str, float]]:
-            - loss (torch.Tensor): The computed Cross Entropy loss value.
-            - metrics (dict[str, float]): A dictionary with the Cross Entropy loss value.
+            - loss (torch.Tensor): The computed cross entropy value.
+            - metrics (dict[str, float]): A dictionary with the cross entropy value.
     """
+    raise ValueError(f"Unsupported batch type f{batch}")
+
+
+@cross_entropy_loss.register(tuple[torch.Tensor,])
+def _(batch: tuple[torch.Tensor,], model: nn.Module) -> tuple[torch.Tensor, dict[str, float]]:
+    criterion = nn.CrossEntropyLoss()
+    (inputs,) = batch
+    outputs = model(inputs)
+    loss = criterion(outputs)
+
+    metrics = {"cross_entopy": loss}
+    return loss, metrics
+
+
+@cross_entropy_loss.register(tuple[torch.Tensor, torch.Tensor])
+def _(
+    batch: tuple[torch.Tensor, torch.Tensor], model: nn.Module
+) -> tuple[torch.Tensor, dict[str, float]]:
     criterion = nn.CrossEntropyLoss()
     inputs, targets = batch
     outputs = model(inputs)
     loss = criterion(outputs, targets)
 
-    # TODO consider returning empty metric. Metrics are for components of the loss.
     metrics = {"cross_entropy": loss}
     return loss, metrics
 
