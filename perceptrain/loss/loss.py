@@ -80,15 +80,11 @@ def _(
 # model supported by perceptrain is PINN, which is unsupervised by nature
 
 
-def mse_loss(
-    batch: TBatch, model: Model, criterion: nn.Module
-) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+def mse_loss(batch: TBatch, model: Model) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
     return _compute_loss_and_metrics(batch, model, criterion=nn.MSELoss())  # type: ignore[no-any-return]
 
 
-def cross_entropy_loss(
-    batch: TBatch, model: Model, criterion: nn.Module
-) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+def cross_entropy_loss(batch: TBatch, model: Model) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
     return _compute_loss_and_metrics(batch, model, criterion=nn.CrossEntropyLoss())  # type: ignore[no-any-return]
 
 
