@@ -1,20 +1,22 @@
 from __future__ import annotations
 
-from functools import singledispatch
-from typing import Any, Callable
+from typing import Callable
 
 import torch
 import torch.nn as nn
+from multimethod import multimethod
 
-from perceptrain.types import Loss
+from ..types import DictInDictOutModel, Model, TBatch, TensorInTensorOutModel
 
 # TODO If the only difference between losses is `criterion`, we can refactor
 # this module
 # TODO Return empty metrics unless the loss has more components (none in this module)
 
 
-@singledispatch
-def mse_loss(batch: Any, model: nn.Module) -> tuple[torch.Tensor, dict[str, float]]:
+@multimethod
+def _compute_loss_and_metrics(
+    batch: TBatch, model: Model, criterion: nn.Module
+) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
     """Computes the Mean Squared Error (MSE) loss between model.
 
         Basically a wrapper of perceptrain around `nn.MSELoss` of pytorch.
@@ -26,7 +28,7 @@ def mse_loss(batch: Any, model: nn.Module) -> tuple[torch.Tensor, dict[str, floa
         happens in supervised learning.
 
     Args:
-        batch (Tuple[torch.Tensor, torch.Tensor]): tuple of tensors for the batch.
+        batch:  tuple of tensors for the batch.
         model (nn.Module): The PyTorch model used for generating predictions.
 
     Returns:
@@ -34,82 +36,63 @@ def mse_loss(batch: Any, model: nn.Module) -> tuple[torch.Tensor, dict[str, floa
             - loss (torch.Tensor): The computed MSE loss value.
             - metrics (dict[str, float]): A dictionary with the MSE loss value.
     """
-    raise ValueError(f"Unsupported batch type f{batch}")
+    raise ValueError(f"Unsupported combination of batch and model: f{type(batch)}, f{type(model)}.")
 
 
-@mse_loss.register(tuple[torch.Tensor,])
-def _(batch: tuple[torch.Tensor,], model: nn.Module) -> tuple[torch.Tensor, dict[str, float]]:
-    criterion = nn.MSELoss()
-    (inputs,) = batch
-    outputs = model(inputs)
+@_compute_loss_and_metrics.register
+def _(
+    batch: torch.Tensor, model: TensorInTensorOutModel, criterion: nn.Module
+) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+    """Unsupervised loss with a tensor-based model."""
+    outputs = model.forward(batch)
     loss = criterion(outputs)
 
-    metrics = {"mse": loss}
+    metrics: dict[str, torch.Tensor] = {}
     return loss, metrics
 
 
-@mse_loss.register(tuple[torch.Tensor, torch.Tensor])
+@_compute_loss_and_metrics.register
 def _(
-    batch: tuple[torch.Tensor, torch.Tensor], model: nn.Module
-) -> tuple[torch.Tensor, dict[str, float]]:
-    criterion = nn.MSELoss()
-    inputs, targets = batch
-    outputs = model(inputs)
-    loss = criterion(outputs, targets)
+    batch: dict[str, torch.Tensor], model: DictInDictOutModel, criterion: nn.Module
+) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+    """Unsupervised loss with a dict-based model."""
+    outputs = model.forward(batch)
+    metrics = {key: criterion(outputs[key]) for key in outputs.keys()}
 
-    metrics = {"mse": loss}
+    loss = sum([metrics[key] for key in outputs.keys()])
     return loss, metrics
 
 
-@singledispatch
-def cross_entropy_loss(batch: Any, model: nn.Module) -> tuple[torch.Tensor, dict[str, float]]:
-    """Computes the Cross Entropy loss between model predictions and targets.
-
-    Basically a wrapper of perceptrain around `nn.CrossEntropyLoss` of pytorch.
-
-    The batch can be both a tuple of a single Tensor, or a tuple of two Tensors.
-    In the fist case, the batch is assumed to contain only the model inputs, as it
-    happens in unsupervised or semi-supervised learning.
-    In the second case, the bach is assumed to contain model inputs and labels, as it
-    happens in supervised learning.
-
-    Args:
-        batch (Tuple[torch.Tensor, torch.Tensor]): tuple of tensors for the batch.
-        model (nn.Module): The PyTorch model used for generating predictions.
-
-    Returns:
-        Tuple[torch.Tensor, dict[str, float]]:
-            - loss (torch.Tensor): The computed cross entropy value.
-            - metrics (dict[str, float]): A dictionary with the cross entropy value.
-    """
-    raise ValueError(f"Unsupported batch type f{batch}")
-
-
-@cross_entropy_loss.register(tuple[torch.Tensor,])
-def _(batch: tuple[torch.Tensor,], model: nn.Module) -> tuple[torch.Tensor, dict[str, float]]:
-    criterion = nn.CrossEntropyLoss()
-    (inputs,) = batch
-    outputs = model(inputs)
-    loss = criterion(outputs)
-
-    metrics = {"cross_entopy": loss}
-    return loss, metrics
-
-
-@cross_entropy_loss.register(tuple[torch.Tensor, torch.Tensor])
+@_compute_loss_and_metrics.register
 def _(
-    batch: tuple[torch.Tensor, torch.Tensor], model: nn.Module
-) -> tuple[torch.Tensor, dict[str, float]]:
-    criterion = nn.CrossEntropyLoss()
-    inputs, targets = batch
-    outputs = model(inputs)
-    loss = criterion(outputs, targets)
+    batch: tuple[torch.Tensor, torch.Tensor], model: TensorInTensorOutModel, criterion: nn.Module
+) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+    """Supervised loss with a tensor-based model."""
+    inputs, labels = batch
+    outputs = model.forward(inputs)
+    loss = criterion(outputs, labels)
 
-    metrics = {"cross_entropy": loss}
+    metrics: dict[str, torch.Tensor] = {}
     return loss, metrics
 
 
-def get_loss(loss: str | Loss | None) -> Callable:
+# NOTE: the supervised, dict-based case is not implemented, simply because the only dict-based
+# model supported by perceptrain is PINN, which is unsupervised by nature
+
+
+def mse_loss(
+    batch: TBatch, model: Model, criterion: nn.Module
+) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+    return _compute_loss_and_metrics(batch, model, criterion=nn.MSELoss())  # type: ignore[no-any-return]
+
+
+def cross_entropy_loss(
+    batch: TBatch, model: Model, criterion: nn.Module
+) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+    return _compute_loss_and_metrics(batch, model, criterion=nn.CrossEntropyLoss())  # type: ignore[no-any-return]
+
+
+def get_loss(loss: str | Callable | None) -> Callable:
     """
     Returns the appropriate loss function based on the input argument.
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import importlib
 from enum import Enum
-from typing import Callable, Iterable, Tuple, Union
+from typing import Callable, Iterable, Protocol, Tuple, Union
 
 import numpy as np
 import torch.nn as nn
@@ -24,7 +24,8 @@ TArray = Union[Iterable, Tensor, np.ndarray]
 TGenerator = Union[Tensor]
 """Union of torch tensors and numpy arrays."""
 
-TBatch = tuple[Tensor, ...] | dict[str, Tensor]
+TData = Union[Tensor, dict[str, Tensor]]
+TBatch = Union[TData, tuple[TData, TData]]
 
 
 PI = pi
@@ -45,7 +46,6 @@ __all__ = [
 ]  # type: ignore
 
 # Basic models for trainer
-Model = nn.Module
 QuantumModel = nn.Module
 QNN = nn.Module
 
@@ -151,4 +151,14 @@ class ExecutionType(StrEnum):
 
 
 LoggablePlotFunction = Callable[[nn.Module, int], tuple[str, Figure]]
-Loss = Callable[[TBatch, nn.Module], tuple[Tensor, dict[str, Tensor]]]
+
+
+class TensorInTensorOutModel(Protocol):
+    def forward(self, x: Tensor) -> Tensor: ...
+
+
+class DictInDictOutModel(Protocol):
+    def forward(self, x: dict[str, Tensor]) -> dict[str, Tensor]: ...
+
+
+Model = TensorInTensorOutModel | DictInDictOutModel
