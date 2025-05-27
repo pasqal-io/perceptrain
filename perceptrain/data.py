@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from functools import singledispatch
 from typing import Any, Callable, Iterator
 
+import torch
 from nevergrad.optimization.base import Optimizer as NGOptimizer
 from torch import Tensor
 from torch import device as torch_device
@@ -89,11 +90,9 @@ class InfiniteTensorDataset(IterableDataset):
                 yield tuple(t[idx] for t in self.tensors)
 
 
-class GenerativeFixedDataset(Dataset):
+class R3Dataset(Dataset):
     def __init__(
-        self,
-        proba_dist: Callable[[int], Tensor],
-        n_samples: int,
+        self, proba_dist: Callable[[int], Tensor], n_samples: int, release_threshold: float = 0.1
     ) -> None:
         """Dataset for labelled data generated via a probability distribution.
 
@@ -108,14 +107,44 @@ class GenerativeFixedDataset(Dataset):
         """
         self.proba_dist = proba_dist
         self.n_samples = n_samples
+        self.release_threshold = release_threshold
 
         self.features = proba_dist(n_samples)
+
+        self._released: Tensor | None = None
+        self._released_indices: Tensor | None = None
+        self.n_released: int = 0
+        self.n_retained: int = 0
 
     def __len__(self) -> int:
         return self.n_samples
 
     def __getitem__(self, index: int) -> tuple[Tensor]:
         return (self.features[index],)
+
+    def _release(self, fitness_values: Tensor) -> None:
+        if len(fitness_values) != self.n_samples:
+            raise ValueError("fitness_values must have the same length as the dataset")
+
+        release_mask = fitness_values < self.release_threshold
+        self._released_indices = torch.nonzero(release_mask).squeeze()
+        self._released = self.features[self._released_indices]
+
+        self.n_released = len(self._released_indices) if self._released_indices.dim() > 0 else 0
+        self.n_retained = self.n_samples - self.n_released
+
+    def _resample(self) -> Tensor:
+        return self.proba_dist(self.n_released)
+
+    def update(self, fitness_values: Tensor) -> None:
+        self._release(fitness_values)
+        if self.n_released > 0:
+            new_samples = self._resample()
+
+            with torch.no_grad():
+                self.features[self._released_indices] = new_samples
+        else:
+            pass
 
 
 class GenerativeIterableDataset(IterableDataset):
@@ -165,6 +194,33 @@ def to_dataloader(*tensors: Tensor, batch_size: int = 1, infinite: bool = False)
     """
     ds = InfiniteTensorDataset(*tensors) if infinite else TensorDataset(*tensors)
     return DataLoader(ds, batch_size=batch_size)
+
+
+def copy_dataloader_with_new_dataset(dataloader: DataLoader, new_dataset: Dataset) -> DataLoader:
+    """Create a new DataLoader with the same configuration but a different dataset.
+
+    This is useful when you need to update the dataset of a DataLoader, since PyTorch
+    doesn't allow modifying the dataset attribute after initialization.
+
+    Arguments:
+        dataloader: The original DataLoader to copy configuration from
+        new_dataset: The new dataset to use in the copied DataLoader
+
+    Returns:
+        A new DataLoader with the same configuration as the original but with the new dataset
+    """
+    return DataLoader(
+        new_dataset,
+        batch_size=dataloader.batch_size,
+        shuffle=False,  # Preserve sampler instead of shuffle
+        sampler=dataloader.sampler,
+        num_workers=dataloader.num_workers,
+        collate_fn=dataloader.collate_fn,
+        pin_memory=dataloader.pin_memory,
+        drop_last=dataloader.drop_last,
+        timeout=dataloader.timeout,
+        worker_init_fn=dataloader.worker_init_fn,
+    )
 
 
 @singledispatch
