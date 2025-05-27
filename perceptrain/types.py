@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import importlib
 from enum import Enum
-from typing import Callable, Iterable, Protocol, Tuple, Union
+from typing import Callable, Iterable, Tuple, Union
 
 import numpy as np
 import torch.nn as nn
@@ -25,14 +25,13 @@ TGenerator = Union[Tensor]
 """Union of torch tensors and numpy arrays."""
 
 TData = Union[Tensor, dict[str, Tensor]]
-TBatch = Union[TData, tuple[TData, TData]]
+TBatch = tuple[TData, ...]
 
 
 PI = pi
 
 # Modules to be automatically added to the preceptrain namespace
 __all__ = [
-    "Model",
     "QuantumModel",
     "QNN",
     "ResultType",
@@ -151,14 +150,3 @@ class ExecutionType(StrEnum):
 
 
 LoggablePlotFunction = Callable[[nn.Module, int], tuple[str, Figure]]
-
-
-class TensorInTensorOutModel(Protocol):
-    def forward(self, x: Tensor) -> Tensor: ...
-
-
-class DictInDictOutModel(Protocol):
-    def forward(self, x: dict[str, Tensor]) -> dict[str, Tensor]: ...
-
-
-Model = TensorInTensorOutModel | DictInDictOutModel

@@ -4,18 +4,20 @@ from typing import Callable
 
 import torch
 import torch.nn as nn
-from multimethod import multimethod
 
-from ..types import DictInDictOutModel, Model, TBatch, TensorInTensorOutModel
+from perceptrain.models import PINN
+
+from ..types import TBatch
 
 # TODO If the only difference between losses is `criterion`, we can refactor
 # this module
 # TODO Return empty metrics unless the loss has more components (none in this module)
 
 
-@multimethod
-def _compute_loss_and_metrics(
-    batch: TBatch, model: Model, criterion: nn.Module
+def _compute_loss_based_on_model(
+    batch: TBatch,
+    model: nn.Module,
+    criterion: nn.Module,
 ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
     """Computes the Mean Squared Error (MSE) loss between model.
 
@@ -36,56 +38,34 @@ def _compute_loss_and_metrics(
             - loss (torch.Tensor): The computed MSE loss value.
             - metrics (dict[str, float]): A dictionary with the MSE loss value.
     """
-    raise ValueError(f"Unsupported combination of batch and model: f{type(batch)}, f{type(model)}.")
+    if isinstance(model, PINN):
+        inputs = {key: value[0] for key, value in batch.items()}  # type: ignore[attr-defined]
+        outputs = model(inputs)
+        metrics = {
+            key: criterion(outputs[key], torch.zeros_like(outputs[key])) for key in outputs.keys()
+        }
+        loss = sum([metrics[key] for key in outputs.keys()])
+    else:
+        inputs, labels = batch
+        predictions = model(inputs)
+        metrics: dict[str, torch.Tensor] = {}  # type: ignore[no-redef]
+        loss = criterion(predictions, labels)
+
+    return loss, metrics
 
 
-@_compute_loss_and_metrics.register
-def _(
-    batch: torch.Tensor, model: TensorInTensorOutModel, criterion: nn.Module
+def mse_loss(batch: TBatch, model: nn.Module) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+    return _compute_loss_based_on_model(batch, model, criterion=nn.MSELoss())  # type: ignore[no-any-return]
+
+
+def cross_entropy_loss(
+    batch: TBatch, model: nn.Module
 ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
-    """Unsupervised loss with a tensor-based model."""
-    outputs = model.forward(batch)
-    loss = criterion(outputs)
-
+    predictions, labels = model(batch)
     metrics: dict[str, torch.Tensor] = {}
+    loss = nn.CrossEntropyLoss(predictions, labels)
+
     return loss, metrics
-
-
-@_compute_loss_and_metrics.register
-def _(
-    batch: dict[str, torch.Tensor], model: DictInDictOutModel, criterion: nn.Module
-) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
-    """Unsupervised loss with a dict-based model."""
-    outputs = model.forward(batch)
-    metrics = {key: criterion(outputs[key]) for key in outputs.keys()}
-
-    loss = sum([metrics[key] for key in outputs.keys()])
-    return loss, metrics
-
-
-@_compute_loss_and_metrics.register
-def _(
-    batch: tuple[torch.Tensor, torch.Tensor], model: TensorInTensorOutModel, criterion: nn.Module
-) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
-    """Supervised loss with a tensor-based model."""
-    inputs, labels = batch
-    outputs = model.forward(inputs)
-    loss = criterion(outputs, labels)
-
-    metrics: dict[str, torch.Tensor] = {}
-    return loss, metrics
-
-
-# NOTE: the supervised, dict-based case is not implemented, simply because the only dict-based
-# model supported by perceptrain is PINN, which is unsupervised by nature
-
-
-def mse_loss(batch: TBatch, model: Model) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
-    return _compute_loss_and_metrics(batch, model, criterion=nn.MSELoss())  # type: ignore[no-any-return]
-
-
-def cross_entropy_loss(batch: TBatch, model: Model) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
-    return _compute_loss_and_metrics(batch, model, criterion=nn.CrossEntropyLoss())  # type: ignore[no-any-return]
 
 
 def get_loss(loss: str | Callable | None) -> Callable:
