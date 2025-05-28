@@ -86,8 +86,16 @@ def print_metrics_and_loss(trainer: Trainer, config: TrainConfig, writer: Any) -
 
 
 def main():
-    SEED = 42
+    BATCH_SIZE_ODE = 10
+    BATCH_SIZE_BC = 1
+    CALLBACK_WEIGHTS_CALLED_EVERY = 1000
+    CALLBACK_LOSS_CALLED_EVERY = 1000
+    INITIAL_GRAD_WEIGHT_ODE = 1.0
+    INITIAL_GRAD_WEIGHT_BC = 1.0
+    LR = 0.01
     MAX_ITER = 30_000
+    NN_LAYERS = (1, 10, 10, 10, 1)
+    SEED = 42
 
     cli_args = parse_arguments()
 
@@ -95,7 +103,7 @@ def main():
     np.random.seed(SEED)
     torch.manual_seed(SEED)
 
-    nn = FFNN(layers=[1, 10, 10, 10, 1])
+    nn = FFNN(layers=NN_LAYERS)
     equations = {
         "ode": evaluate_ode,
         "bc": evaluate_bc,
@@ -103,7 +111,9 @@ def main():
     model = PINN(nn, equations)
 
     # dataloader(s)
-    dl_ode, dl_bc = make_problem_dataloaders(batch_sizes={"ode": 10, "bc": 1})
+    dl_ode, dl_bc = make_problem_dataloaders(
+        batch_sizes={"ode": BATCH_SIZE_ODE, "bc": BATCH_SIZE_BC}
+    )
     ddl = DictDataLoader(dataloaders={"ode": dl_ode, "bc": dl_bc})
 
     # optimizer and loss
@@ -111,21 +121,25 @@ def main():
         optimizer = ng.optimizers.NGOpt(parametrization=num_parameters(model), budget=MAX_ITER)
         Trainer.set_use_grad(False)
     else:
-        optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
+        optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 
     loss = GradWeightedLoss(
         batch=next(iter(ddl)),
         unweighted_loss_function=mse_loss,
         optimizer=optimizer,
-        gradient_weights={"ode": 1.0, "bc": 1.0},
+        gradient_weights={"ode": INITIAL_GRAD_WEIGHT_ODE, "bc": INITIAL_GRAD_WEIGHT_BC},
         fixed_metric="ode",
     )
 
     callback_weights = Callback(
-        on="train_epoch_end", callback=print_gradient_weights, called_every=1000
+        on="train_epoch_end",
+        callback=print_gradient_weights,
+        called_every=CALLBACK_WEIGHTS_CALLED_EVERY,
     )
     callback_metrics_loss = Callback(
-        on="train_epoch_end", callback=print_metrics_and_loss, called_every=1000
+        on="train_epoch_end",
+        callback=print_metrics_and_loss,
+        called_every=CALLBACK_LOSS_CALLED_EVERY,
     )
 
     # config and trainer
