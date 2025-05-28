@@ -167,6 +167,7 @@ def main():
     N_SAMPLES_BC = 10
     N_SAMPLES_IC = 20
     N_SAMPLES_INTERIOR = 100
+    NN_LAYERS = [2, 50, 50, 50, 50, 1]
     SEED = 42
 
     cli_args = parse_arguments()
@@ -191,7 +192,7 @@ def main():
     ddl = DictDataLoader(dataloaders={"pde": dl_pde, "bc": dl_bc, "ic": dl_ic})
 
     # model
-    nn = FFNN(layers=[2, 50, 50, 50, 50, 1], activation_function=torch.nn.Tanh)
+    nn = FFNN(layers=NN_LAYERS, activation_function=torch.nn.Tanh)
     equations = {
         "pde": evaluate_pde,
         "bc": evaluate_periodic_bc,
