@@ -17,7 +17,7 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 
 from perceptrain import TrainConfig, Trainer
-from perceptrain.callbacks import Callback
+from perceptrain.callbacks import Callback, PrintMetrics
 from perceptrain.data import DictDataLoader, to_dataloader
 from perceptrain.loss import GradWeightedLoss, mse_loss
 from perceptrain.models import FFNN, PINN
@@ -76,15 +76,6 @@ def print_gradient_weights(trainer: Trainer, config: TrainConfig, writer: Any) -
     )
 
 
-def print_metrics_and_loss(trainer: Trainer, config: TrainConfig, writer: Any) -> None:
-    print(
-        f"Epoch: {trainer.current_epoch};"
-        f" Loss: {trainer.opt_result.loss:8.4f},"
-        f" ODE loss: {trainer.opt_result.metrics['train_ode']:8.4f}"
-        f" BC loss: {trainer.opt_result.metrics['train_bc']:8.4f}"
-    )
-
-
 def main():
     BATCH_SIZE_ODE = 10
     BATCH_SIZE_BC = 1
@@ -136,12 +127,10 @@ def main():
         callback=print_gradient_weights,
         called_every=CALLBACK_WEIGHTS_CALLED_EVERY,
     )
-    callback_metrics_loss = Callback(
+    callback_metrics_loss = PrintMetrics(
         on="train_epoch_end",
-        callback=print_metrics_and_loss,
         called_every=CALLBACK_LOSS_CALLED_EVERY,
     )
-
     # config and trainer
     train_config = TrainConfig(
         max_iter=MAX_ITER, callbacks=[callback_weights, callback_metrics_loss]

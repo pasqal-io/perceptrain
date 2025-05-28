@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import argparse
 import random
-from typing import Any
 
 import nevergrad as ng
 import numpy as np
@@ -19,7 +18,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from perceptrain import TrainConfig, Trainer
-from perceptrain.callbacks import Callback, R3Sampling
+from perceptrain.callbacks import PrintMetrics, R3Sampling
 from perceptrain.data import (
     DictDataLoader,
     R3Dataset,
@@ -83,16 +82,6 @@ def evaluate_periodic_bc(x: torch.Tensor, model: torch.nn.Module):
 
 def evaluate_initial(x: torch.Tensor, model: torch.nn.Module):
     return model(x) - torch.sin(x[:, 1])
-
-
-def print_metrics_and_loss(trainer: Any, config: TrainConfig, writer: BaseWriter) -> Any:
-    print(
-        f"Epoch: {trainer.current_epoch};"
-        f" Loss: {trainer.opt_result.loss:8.4f},"
-        f" PDE loss: {trainer.opt_result.metrics['train_pde']:8.4f}"
-        f" BC loss: {trainer.opt_result.metrics['train_bc']:8.4f}"
-        f" IC loss: {trainer.opt_result.metrics['train_ic']:8.4f}"
-    )
 
 
 def main():
@@ -162,9 +151,8 @@ def main():
         verbose=True,
         called_every=CALLBACK_R3_CALLED_EVERY,
     )
-    callback_metrics_loss = Callback(
+    callback_metrics_loss = PrintMetrics(
         on="train_epoch_end",
-        callback=print_metrics_and_loss,
         called_every=CALLBACK_LOSS_METRICS_CALLED_EVERY,
     )
 
