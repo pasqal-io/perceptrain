@@ -4,10 +4,19 @@ import math
 from logging import getLogger
 from typing import Any, Callable
 
+import torch.nn as nn
+from torch import Tensor
+from torch.utils.data import DataLoader
+
 from perceptrain.callbacks.saveload import load_checkpoint, write_checkpoint
 from perceptrain.callbacks.writer_registry import BaseWriter
 from perceptrain.config import TrainConfig
-from perceptrain.data import OptimizeResult
+from perceptrain.data import (
+    DictDataLoader,
+    OptimizeResult,
+    R3Dataset,
+    copy_dataloader_with_new_dataset,
+)
 from perceptrain.stages import TrainingStage
 
 # Define callback types
@@ -803,3 +812,62 @@ class GradientMonitoring(Callback):
                     )
 
             writer.write(trainer.opt_result.iteration, gradient_stats)
+
+
+class R3Sampling(Callback):
+    def __init__(
+        self,
+        initial_dataset: R3Dataset,
+        fitness_function: Callable[[Tensor, nn.Module], Tensor],
+        threshold: float = 0.1,
+        dataloader_key: str | None = None,
+        verbose: bool = False,
+        called_every: int = 1,
+    ):
+        """Note that only the first tensor in the dataset is considered, and it is assumed to be.
+
+        the tensor of features.
+
+        We pass the dataset, not the single tensors, because the object is more general, because
+        map/iterable-style are chosen upstream and because we can use the init constructor of
+        datasets.
+        Assumes supervised learning (labels).
+        """
+        self.dataset = initial_dataset
+        self.fitness_function = fitness_function
+        self.dataloader_key = dataloader_key
+        self.verbose = True
+
+        super().__init__(on="train_epoch_start", called_every=called_every)
+
+    def run_callback(self, trainer: Any, config: TrainConfig, writer: BaseWriter) -> None:
+        """Eventually make a new dataloader from a dataset.__init__() call."""
+        # Compute fitness function on all samples
+        fitnesses = self.fitness_function(self.dataset.features, trainer.model)
+
+        # R3 update
+        self.dataset.update(fitnesses)
+
+        # Update dataloader of the trainer with the re-sampled dataset.
+        if isinstance(trainer.train_dataloader, DataLoader):
+            trainer.train_dataloader = copy_dataloader_with_new_dataset(
+                trainer.train_dataloader, self.dataset
+            )
+        elif isinstance(trainer.train_dataloader, DictDataLoader):
+            if self.dataloader_key is not None:
+                dataloader_to_update = trainer.train_dataloader.dataloaders[self.dataloader_key]
+                trainer.train_dataloader.dataloaders[self.dataloader_key] = (
+                    copy_dataloader_with_new_dataset(dataloader_to_update, self.dataset)
+                )
+            else:
+                raise ValueError(
+                    "Updating a dictdataloader is not possible,"
+                    "unless the key of the dataloader to be updated is specified."
+                )
+
+        if self.verbose:
+            print(
+                f"Epoch {trainer.current_epoch};"
+                f" num. retained: {self.dataset.n_samples - self.dataset.n_released:5d};"
+                f" num. released: {self.dataset.n_released:5d}"
+            )

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import argparse
 import random
-from typing import Any, Callable
+from typing import Any
 
 import nevergrad as ng
 import numpy as np
@@ -23,7 +23,6 @@ from perceptrain.callbacks import Callback
 from perceptrain.data import (
     DictDataLoader,
     R3Dataset,
-    copy_dataloader_with_new_dataset,
     to_dataloader,
 )
 from perceptrain.loss.loss import mse_loss
@@ -40,65 +39,6 @@ def parse_arguments() -> argparse.Namespace:
     )
     args = parser.parse_args()
     return args
-
-
-class R3Sampling(Callback):
-    def __init__(
-        self,
-        initial_dataset: R3Dataset,
-        fitness_function: Callable[[torch.Tensor, torch.nn.Module], torch.Tensor],
-        threshold: float = 0.1,
-        dataloader_key: str | None = None,
-        verbose: bool = False,
-        called_every: int = 1,
-    ):
-        """Note that only the first tensor in the dataset is considered, and it is assumed to be.
-
-        the tensor of features.
-
-        We pass the dataset, not the single tensors, because the object is more general, because
-        map/iterable-style are chosen upstream and because we can use the init constructor of
-        datasets.
-        Assumes supervised learning (labels).
-        """
-        self.dataset = initial_dataset
-        self.fitness_function = fitness_function
-        self.dataloader_key = dataloader_key
-        self.verbose = True
-
-        super().__init__(on="train_epoch_start", called_every=called_every)
-
-    def run_callback(self, trainer: Any, config: TrainConfig, writer: BaseWriter) -> None:
-        """Eventually make a new dataloader from a dataset.__init__() call."""
-        # Compute fitness function on all samples
-        fitnesses = self.fitness_function(self.dataset.features, trainer.model)
-
-        # R3 update
-        self.dataset.update(fitnesses)
-
-        # Update dataloader of the trainer with the re-sampled dataset.
-        if isinstance(trainer.train_dataloader, DataLoader):
-            trainer.train_dataloader = copy_dataloader_with_new_dataset(
-                trainer.train_dataloader, self.dataset
-            )
-        elif isinstance(trainer.train_dataloader, DictDataLoader):
-            if self.dataloader_key is not None:
-                dataloader_to_update = trainer.train_dataloader.dataloaders[self.dataloader_key]
-                trainer.train_dataloader.dataloaders[self.dataloader_key] = (
-                    copy_dataloader_with_new_dataset(dataloader_to_update, self.dataset)
-                )
-            else:
-                raise ValueError(
-                    "Updating a dictdataloader is not possible,"
-                    "unless the key of the dataloader to be updated is specified."
-                )
-
-        if self.verbose:
-            print(
-                f"Epoch {trainer.current_epoch};"
-                f" num. retained: {self.dataset.n_samples - self.dataset.n_released:5d};"
-                f" num. released: {self.dataset.n_released:5d}"
-            )
 
 
 def interior_uniform(n: int = 1) -> torch.Tensor:
@@ -160,7 +100,7 @@ def main():
     BATCH_SIZE_IC = 2
     BATCH_SIZE_INTERIOR = 20
     BETA = 10.0
-    CALLBACK_R3_CALLED_EVERY = 100
+    CALLBACK_R3_CALLED_EVERY = 1000
     CALLBACK_LOSS_METRICS_CALLED_EVERY = 1000
     LR = 0.001
     MAX_ITER = 10_000
@@ -222,7 +162,9 @@ def main():
         called_every=CALLBACK_R3_CALLED_EVERY,
     )
     callback_metrics_loss = Callback(
-        on="train_epoch_end", callback=print_metrics_and_loss, called_every=1000
+        on="train_epoch_end",
+        callback=print_metrics_and_loss,
+        called_every=CALLBACK_LOSS_METRICS_CALLED_EVERY,
     )
 
     # config and trainer
