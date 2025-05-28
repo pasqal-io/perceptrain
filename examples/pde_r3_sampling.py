@@ -19,7 +19,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from perceptrain import TrainConfig, Trainer
-from perceptrain.callbacks import Callback
+from perceptrain.callbacks import Callback, R3Sampling
 from perceptrain.data import (
     DictDataLoader,
     R3Dataset,
