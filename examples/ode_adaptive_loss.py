@@ -19,6 +19,7 @@ from torch.utils.data.dataloader import DataLoader
 from perceptrain import TrainConfig, Trainer
 from perceptrain.callbacks import Callback
 from perceptrain.data import DictDataLoader, to_dataloader
+from perceptrain.loss import GradWeightedLoss, mse_loss
 from perceptrain.models import FFNN, PINN
 from perceptrain.parameters import num_parameters
 
@@ -32,81 +33,6 @@ def parse_arguments() -> argparse.Namespace:
     )
     args = parser.parse_args()
     return args
-
-
-def mse(residuals: torch.Tensor) -> torch.Tensor:
-    return torch.mean(residuals**2)
-
-
-class GradWeightedLoss:
-    def __init__(
-        self,
-        batch: dict[str, torch.Tensor],
-        optimizer: torch.optim.Optimizer | ng.optimization.Optimizer,
-        gradient_weights: dict[str, float | torch.Tensor],
-        fixed_metric: str,
-        alpha: float = 0.9,
-    ):
-        self.metric_names = batch.keys()
-        self.gradient_weights = gradient_weights
-        self.gradients = {key: {} for key in self.metric_names}
-        self.optimizer = optimizer
-        self.fixed_metric = fixed_metric
-        self.alpha = alpha
-
-    def _update_metrics_gradients(
-        self,
-        metrics: dict[str, torch.Tensor],
-        model_parameters: list[tuple[str, torch.nn.parameter.Parameter]],
-    ) -> None:
-        if isinstance(self.optimizer, torch.optim.Optimizer):
-            self.optimizer.zero_grad()
-        for key, metric in metrics.items():
-            metric.backward(retain_graph=True)
-            self.gradients[key] = {
-                name: torch.clone(param.grad.flatten())
-                for name, param in model_parameters
-                if param.grad is not None
-            }
-
-    def _gradient_norm_weighting(
-        self, metrics: dict[str, torch.Tensor]
-    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
-        fixed_grad = self.gradients[self.fixed_metric]
-        fixed_dthetas = torch.cat(tuple(dlayer for dlayer in fixed_grad.values()))
-        #
-        # get max absolute gradient corresponding to residual loss term
-        max_grad = fixed_dthetas.abs().max()
-
-        # calculate weights for IC and BC terms
-        for key, val in self.gradients.items():
-            if key != self.fixed_metric:
-                mean_grad = torch.cat(list(val.values())).abs().mean()
-                self.gradient_weights[key] = (1.0 - self.alpha) * self.gradient_weights[
-                    key
-                ] + self.alpha * max_grad / mean_grad
-
-        # calculate reweighted loss and metrics
-        reweighted_metrics = {key: val * self.gradient_weights[key] for key, val in metrics.items()}
-        reweighted_loss = torch.sum(torch.stack([val for val in reweighted_metrics.values()]))
-
-        return reweighted_loss, reweighted_metrics
-
-    @staticmethod
-    def _compute_unweighted_metrics_and_loss(features: dict[str, torch.Tensor]):
-        metrics = {name: mse(feature) for name, feature in features.items()}
-        loss = sum(metrics.values())
-        return loss, metrics
-
-    def __call__(
-        self, model: PINN, batch: dict[str, torch.Tensor]
-    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
-        features = model({key: b_i[0] for key, b_i in batch.items()})
-        loss, metrics = self._compute_unweighted_metrics_and_loss(features)
-        self._update_metrics_gradients(metrics, list(model.named_parameters()))
-        loss, metrics = self._gradient_norm_weighting(metrics)
-
-        return loss, metrics
 
 
 def evaluate_ode(x: torch.Tensor, model: torch.nn.Module) -> torch.Tensor:
@@ -142,7 +68,7 @@ def make_problem_dataloaders(batch_sizes: dict[str, int]) -> tuple[DataLoader, D
     )
 
 
-def print_gradient_weights(trainer: Any, config: TrainConfig, writer: BaseWriter) -> Any:
+def print_gradient_weights(trainer: Trainer, config: TrainConfig, writer: Any) -> None:
     print(
         f"Epoch: {trainer.current_epoch};"
         f" ODE weight: {trainer.loss_fn.gradient_weights['ode']:8.4f},"
@@ -150,7 +76,7 @@ def print_gradient_weights(trainer: Any, config: TrainConfig, writer: BaseWriter
     )
 
 
-def print_metrics_and_loss(trainer: Any, config: TrainConfig, writer: BaseWriter) -> Any:
+def print_metrics_and_loss(trainer: Trainer, config: TrainConfig, writer: Any) -> None:
     print(
         f"Epoch: {trainer.current_epoch};"
         f" Loss: {trainer.opt_result.loss:8.4f},"
@@ -161,7 +87,7 @@ def print_metrics_and_loss(trainer: Any, config: TrainConfig, writer: BaseWriter
 
 def main():
     SEED = 42
-    MAX_ITER = 10_000
+    MAX_ITER = 30_000
 
     cli_args = parse_arguments()
 
@@ -189,6 +115,7 @@ def main():
 
     loss = GradWeightedLoss(
         batch=next(iter(ddl)),
+        unweighted_loss_function=mse_loss,
         optimizer=optimizer,
         gradient_weights={"ode": 1.0, "bc": 1.0},
         fixed_metric="ode",
