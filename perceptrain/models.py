@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, Sequence
 
 import torch.nn as nn
 from torch import Tensor
@@ -51,7 +51,7 @@ class QNN(QuantumModel):
 
 
 class FFNN(nn.Module):
-    def __init__(self, layers: list[int], activation_function: Callable = nn.GELU) -> None:
+    def __init__(self, layers: Sequence[int], activation_function: Callable = nn.GELU) -> None:
         super().__init__()
         if len(layers) < 2:
             raise ValueError("You must specify at least one input and one output layer.")
