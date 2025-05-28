@@ -109,6 +109,7 @@ def main():
     N_SAMPLES_INTERIOR = 100
     NN_LAYERS = [2, 50, 50, 50, 50, 1]
     SEED = 42
+    THRESHOLD_RESIDUAL = 20.0
 
     cli_args = parse_arguments()
 
@@ -156,7 +157,7 @@ def main():
     callback_r3 = R3Sampling(
         initial_dataset=ds,
         fitness_function=fitness_function,
-        threshold=20.0,
+        threshold=THRESHOLD_RESIDUAL,
         dataloader_key="pde",
         verbose=True,
         called_every=CALLBACK_R3_CALLED_EVERY,
