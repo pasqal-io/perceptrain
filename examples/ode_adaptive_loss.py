@@ -134,6 +134,7 @@ def main():
     callback_live_loss = LivePlotMetrics(
         on="train_epoch_end",
         called_every=CALLBACK_LOSS_CALLED_EVERY,
+        groups={"training": ["train_loss", "train_ode", "train_bc"]},
     )
     # config and trainer
     train_config = TrainConfig(

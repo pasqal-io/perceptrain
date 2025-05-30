@@ -348,10 +348,23 @@ class LivePlotMetrics(Callback):
     at every call and plot them via matplotlib.
     """
 
-    def __init__(self, on: str, called_every: int):
+    def __init__(
+        self, on: str, called_every: int, groups: dict[str, list[str]] = {"loss": ["train_loss"]}
+    ):
+        """Initializes the callback.
+
+        Args:
+            on (str): The event to trigger the callback.
+            called_every (int): Frequency of callback calls in terms of iterations.
+            groups (dict[str, dict[str, list[str]]): How metrics are grouped for the subplots. Each entry
+                is a different group, which will correspond to a different subplot.
+        """
         super().__init__(on=on, called_every=called_every)
         self.output_mode = llp.get_mode()
-        self.liveloss = llp.PlotLosses(outputs=[MatplotlibPlot(after_plots=self._after_plots)])
+        self.liveloss = llp.PlotLosses(
+            outputs=[MatplotlibPlot(after_plots=self._after_plots)],
+            groups=groups,
+        )
 
     def _after_plots(self, fig: plt.Figure) -> None:
         fig.tight_layout()
@@ -365,7 +378,7 @@ class LivePlotMetrics(Callback):
     def run_callback(self, trainer: Any, config: TrainConfig, writer: BaseWriter) -> Any:
         if trainer.accelerator.rank == 0:
             opt_result = trainer.opt_result
-            self.liveloss.update(opt_result.metrics | {"loss": opt_result.loss})
+            self.liveloss.update(opt_result.metrics, current_step=trainer.current_epoch)
             with torch.no_grad():
                 self.liveloss.send()
 
