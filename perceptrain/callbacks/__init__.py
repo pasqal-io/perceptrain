@@ -4,6 +4,7 @@ from .callback import (
     Callback,
     EarlyStopping,
     GradientMonitoring,
+    LivePlotMetrics,
     LoadCheckpoint,
     LogHyperparameters,
     LogModelTracker,
@@ -24,6 +25,7 @@ from .writer_registry import get_writer
 __all__ = [
     "CallbacksManager",
     "Callback",
+    "LivePlotMetrics",
     "LoadCheckpoint",
     "LogHyperparameters",
     "LogModelTracker",

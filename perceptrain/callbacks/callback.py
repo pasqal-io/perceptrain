@@ -4,7 +4,11 @@ import math
 from logging import getLogger
 from typing import Any, Callable
 
+import livelossplot.plot_losses as llp
+import matplotlib.pyplot as plt
+import torch
 import torch.nn as nn
+from livelossplot.outputs import MatplotlibPlot
 from torch import Tensor
 from torch.utils.data import DataLoader
 
@@ -335,6 +339,35 @@ class TrackPlots(Callback):
             opt_result = trainer.opt_result
             plotting_functions = config.plotting_functions
             writer.plot(trainer.model, opt_result.iteration, plotting_functions)
+
+
+class LivePlotMetrics(Callback):
+    """Callback to follow metrics on screen during training.
+
+    It uses [livelossplot](https://github.com/stared/livelossplot) to update losses and metrics
+    at every call and plot them via matplotlib.
+    """
+
+    def __init__(self, on: str, called_every: int):
+        super().__init__(on=on, called_every=called_every)
+        self.output_mode = llp.get_mode()
+        self.liveloss = llp.PlotLosses(outputs=[MatplotlibPlot(after_plots=self._after_plots)])
+
+    def _after_plots(self, fig: plt.Figure) -> None:
+        fig.tight_layout()
+        if self.output_mode == "script":
+            plt.draw()
+            plt.pause(0.1)
+            plt.close(fig)
+        else:
+            plt.show()
+
+    def run_callback(self, trainer: Any, config: TrainConfig, writer: BaseWriter) -> Any:
+        if trainer.accelerator.rank == 0:
+            opt_result = trainer.opt_result
+            self.liveloss.update(opt_result.metrics | {"loss": opt_result.loss})
+            with torch.no_grad():
+                self.liveloss.send()
 
 
 class LogHyperparameters(Callback):
