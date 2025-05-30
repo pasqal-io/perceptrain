@@ -10,11 +10,11 @@ from .callback import (
     LRSchedulerCosineAnnealing,
     LRSchedulerCyclic,
     LRSchedulerStepDecay,
-    PlotMetrics,
     PrintMetrics,
     R3Sampling,
     SaveBestCheckpoint,
     SaveCheckpoint,
+    TrackPlots,
     WriteMetrics,
 )
 from .callbackmanager import CallbacksManager
@@ -27,7 +27,7 @@ __all__ = [
     "LoadCheckpoint",
     "LogHyperparameters",
     "LogModelTracker",
-    "PlotMetrics",
+    "TrackPlots",
     "PrintMetrics",
     "R3Sampling",
     "SaveBestCheckpoint",

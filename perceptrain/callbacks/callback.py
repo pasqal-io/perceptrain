@@ -297,21 +297,21 @@ class WriteMetrics(Callback):
             writer.write(opt_result.iteration, opt_result.metrics)
 
 
-class PlotMetrics(Callback):
+class TrackPlots(Callback):
     """Callback to plot metrics using the writer.
 
-    The `PlotMetrics` callback can be added to the `TrainConfig` callbacks as
+    The `TrackPlots` callback can be added to the `TrainConfig` callbacks as
     a custom user defined callback.
 
     Example Usage in `TrainConfig`:
-    To use `PlotMetrics`, include it in the `callbacks` list when setting up your
+    To use `TrackPlots`, include it in the `callbacks` list when setting up your
     `TrainConfig`:
     ```python exec="on" source="material-block" result="json"
     from perceptrain import TrainConfig
-    from perceptrain.callbacks import PlotMetrics
+    from perceptrain.callbacks import TrackPlots
 
-    # Create an instance of the PlotMetrics callback
-    plot_metrics_callback = PlotMetrics(on = "val_batch_end", called_every = 100)
+    # Create an instance of the TrackPlots callback
+    plot_metrics_callback = TrackPlots(on = "val_batch_end", called_every = 100)
 
     config = TrainConfig(
         max_iter=10000,

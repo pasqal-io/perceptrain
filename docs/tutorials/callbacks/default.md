@@ -1,4 +1,3 @@
-
 # Built-in Callbacks
 
 `perceptrain` offers several built-in callbacks for common tasks like saving checkpoints, logging metrics, and tracking models. Below is an overview of each.
@@ -35,15 +34,15 @@ config = TrainConfig(
 )
 ```
 
-### 3. `PlotMetrics`
+### 3. `TrackPlots`
 
 Plots metrics based on user-defined plotting functions.
 
 ```python exec="on" source="material-block" html="1"
 from perceptrain import TrainConfig
-from perceptrain.callbacks import PlotMetrics
+from perceptrain.callbacks import TrackPlots
 
-plot_metrics_callback = PlotMetrics(on="train_epoch_end", called_every=100)
+plot_metrics_callback = TrackPlots(on="train_epoch_end", called_every=100)
 
 config = TrainConfig(
     max_iter=5000,
