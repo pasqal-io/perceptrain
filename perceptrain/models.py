@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from torch.nn import Module
+from typing import Callable, Sequence
+
+import torch.nn as nn
 from torch import Tensor
 
-Model: Module = Module
+Model: nn.Module = nn.Module
 
 
-class QuantumModel(Module):
+class QuantumModel(nn.Module):
     """
     Base class for any quantum-based model.
 
@@ -46,3 +48,38 @@ class QNN(QuantumModel):
         passes x through a classical linear layer.
         """
         return x
+
+
+class FFNN(nn.Module):
+    def __init__(self, layers: Sequence[int], activation_function: Callable = nn.GELU) -> None:
+        super().__init__()
+        if len(layers) < 2:
+            raise ValueError("You must specify at least one input and one output layer.")
+
+        self.layers = layers
+        self.activation_function = activation_function
+
+        sequence = []
+        for n_i, n_o in zip(self.layers[:-2], self.layers[1:-1]):
+            sequence.append(nn.Linear(n_i, n_o))
+            sequence.append(self.activation_function())
+
+        sequence.append(nn.Linear(self.layers[-2], self.layers[-1]))
+        self.nn = nn.Sequential(*sequence)
+
+    def forward(self, x: Tensor) -> Tensor:
+        return self.nn(x)
+
+
+class PINN(nn.Module):
+    def __init__(
+        self,
+        nn: nn.Module,
+        equations: dict[str, Callable[[Tensor, nn.Module], Tensor]],
+    ) -> None:
+        super().__init__()
+        self.nn = nn
+        self.equations = equations
+
+    def forward(self, x: dict[str, Tensor]) -> dict[str, Tensor]:
+        return {key: self.equations[key](x_i, self.nn) for key, x_i in x.items()}

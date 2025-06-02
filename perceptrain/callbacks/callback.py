@@ -4,10 +4,23 @@ import math
 from logging import getLogger
 from typing import Any, Callable
 
+import livelossplot.plot_losses as llp
+import matplotlib.pyplot as plt
+import torch
+import torch.nn as nn
+from livelossplot.outputs import MatplotlibPlot
+from torch import Tensor
+from torch.utils.data import DataLoader
+
 from perceptrain.callbacks.saveload import load_checkpoint, write_checkpoint
 from perceptrain.callbacks.writer_registry import BaseWriter
 from perceptrain.config import TrainConfig
-from perceptrain.data import OptimizeResult
+from perceptrain.data import (
+    DictDataLoader,
+    OptimizeResult,
+    R3Dataset,
+    copy_dataloader_with_new_dataset,
+)
 from perceptrain.stages import TrainingStage
 
 # Define callback types
@@ -288,21 +301,21 @@ class WriteMetrics(Callback):
             writer.write(opt_result.iteration, opt_result.metrics)
 
 
-class PlotMetrics(Callback):
+class TrackPlots(Callback):
     """Callback to plot metrics using the writer.
 
-    The `PlotMetrics` callback can be added to the `TrainConfig` callbacks as
+    The `TrackPlots` callback can be added to the `TrainConfig` callbacks as
     a custom user defined callback.
 
     Example Usage in `TrainConfig`:
-    To use `PlotMetrics`, include it in the `callbacks` list when setting up your
+    To use `TrackPlots`, include it in the `callbacks` list when setting up your
     `TrainConfig`:
     ```python exec="on" source="material-block" result="json"
     from perceptrain import TrainConfig
-    from perceptrain.callbacks import PlotMetrics
+    from perceptrain.callbacks import TrackPlots
 
-    # Create an instance of the PlotMetrics callback
-    plot_metrics_callback = PlotMetrics(on = "val_batch_end", called_every = 100)
+    # Create an instance of the TrackPlots callback
+    plot_metrics_callback = TrackPlots(on = "val_batch_end", called_every = 100)
 
     config = TrainConfig(
         max_iter=10000,
@@ -326,6 +339,48 @@ class PlotMetrics(Callback):
             opt_result = trainer.opt_result
             plotting_functions = config.plotting_functions
             writer.plot(trainer.model, opt_result.iteration, plotting_functions)
+
+
+class LivePlotMetrics(Callback):
+    """Callback to follow metrics on screen during training.
+
+    It uses [livelossplot](https://github.com/stared/livelossplot) to update losses and metrics
+    at every call and plot them via matplotlib.
+    """
+
+    def __init__(
+        self, on: str, called_every: int, groups: dict[str, list[str]] = {"loss": ["train_loss"]}
+    ):
+        """Initializes the callback.
+
+        Args:
+            on (str): The event to trigger the callback.
+            called_every (int): Frequency of callback calls in terms of iterations.
+            groups (dict[str, dict[str, list[str]]): How metrics are grouped for the subplots. Each entry
+                is a different group, which will correspond to a different subplot.
+        """
+        super().__init__(on=on, called_every=called_every)
+        self.output_mode = llp.get_mode()
+        self.liveloss = llp.PlotLosses(
+            outputs=[MatplotlibPlot(after_plots=self._after_plots)],
+            groups=groups,
+        )
+
+    def _after_plots(self, fig: plt.Figure) -> None:
+        fig.tight_layout()
+        if self.output_mode == "script":
+            plt.draw()
+            plt.pause(0.1)
+            plt.close(fig)
+        else:
+            plt.show()
+
+    def run_callback(self, trainer: Any, config: TrainConfig, writer: BaseWriter) -> Any:
+        if trainer.accelerator.rank == 0:
+            opt_result = trainer.opt_result
+            self.liveloss.update(opt_result.metrics, current_step=trainer.current_epoch)
+            with torch.no_grad():
+                self.liveloss.send()
 
 
 class LogHyperparameters(Callback):
@@ -803,3 +858,62 @@ class GradientMonitoring(Callback):
                     )
 
             writer.write(trainer.opt_result.iteration, gradient_stats)
+
+
+class R3Sampling(Callback):
+    def __init__(
+        self,
+        initial_dataset: R3Dataset,
+        fitness_function: Callable[[Tensor, nn.Module], Tensor],
+        threshold: float = 0.1,
+        dataloader_key: str | None = None,
+        verbose: bool = False,
+        called_every: int = 1,
+    ):
+        """Note that only the first tensor in the dataset is considered, and it is assumed to be.
+
+        the tensor of features.
+
+        We pass the dataset, not the single tensors, because the object is more general, because
+        map/iterable-style are chosen upstream and because we can use the init constructor of
+        datasets.
+        Assumes supervised learning (labels).
+        """
+        self.dataset = initial_dataset
+        self.fitness_function = fitness_function
+        self.dataloader_key = dataloader_key
+        self.verbose = True
+
+        super().__init__(on="train_epoch_start", called_every=called_every)
+
+    def run_callback(self, trainer: Any, config: TrainConfig, writer: BaseWriter) -> None:
+        """Eventually make a new dataloader from a dataset.__init__() call."""
+        # Compute fitness function on all samples
+        fitnesses = self.fitness_function(self.dataset.features, trainer.model)
+
+        # R3 update
+        self.dataset.update(fitnesses)
+
+        # Update dataloader of the trainer with the re-sampled dataset.
+        if isinstance(trainer.train_dataloader, DataLoader):
+            trainer.train_dataloader = copy_dataloader_with_new_dataset(
+                trainer.train_dataloader, self.dataset
+            )
+        elif isinstance(trainer.train_dataloader, DictDataLoader):
+            if self.dataloader_key is not None:
+                dataloader_to_update = trainer.train_dataloader.dataloaders[self.dataloader_key]
+                trainer.train_dataloader.dataloaders[self.dataloader_key] = (
+                    copy_dataloader_with_new_dataset(dataloader_to_update, self.dataset)
+                )
+            else:
+                raise ValueError(
+                    "Updating a dictdataloader is not possible,"
+                    "unless the key of the dataloader to be updated is specified."
+                )
+
+        if self.verbose:
+            print(
+                f"Epoch {trainer.current_epoch};"
+                f" num. retained: {self.dataset.n_samples - self.dataset.n_released:5d};"
+                f" num. released: {self.dataset.n_released:5d}"
+            )

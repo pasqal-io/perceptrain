@@ -1,17 +1,18 @@
+from __future__ import annotations
+
 import os
 import random
 import time
-import multiprocessing
 from typing import Any, Dict, Tuple
 
+import psutil
 import pytest
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import psutil
 from torch.utils.data import DataLoader
 
-from perceptrain import TrainConfig, Trainer, to_dataloader, DictDataLoader
+from perceptrain import DictDataLoader, TrainConfig, Trainer, to_dataloader
 from perceptrain.optimize_step import optimize_step
 
 
@@ -44,7 +45,7 @@ def count_worker_processes(master_pid: int) -> int:
 
 
 def normal_loss_fn(
-    model: nn.Module, data: Tuple[torch.Tensor, torch.Tensor]
+    data: Tuple[torch.Tensor, torch.Tensor], model: nn.Module
 ) -> Tuple[torch.Tensor, Dict[str, Any]]:
     """Picklable loss function for normal DataLoader."""
     x, y = data
@@ -53,7 +54,7 @@ def normal_loss_fn(
 
 
 def dict_loss_fn(
-    model: nn.Module, data_dict: Dict[str, Tuple[torch.Tensor, torch.Tensor]]
+    data_dict: Dict[str, Tuple[torch.Tensor, torch.Tensor]], model: nn.Module
 ) -> Tuple[torch.Tensor, Dict[str, Any]]:
     """Picklable loss function for DictDataLoader."""
     losses = []
