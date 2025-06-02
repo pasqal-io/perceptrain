@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-from itertools import count
 from pathlib import Path
 
 import torch
@@ -9,8 +7,9 @@ from nevergrad.optimization.base import Optimizer as NGOptimizer
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-from perceptrain import QNN, QuantumModel
 from perceptrain import (
+    QNN,
+    QuantumModel,
     TrainConfig,
     Trainer,
     load_checkpoint,
@@ -51,12 +50,10 @@ def write_legacy_checkpoint(
 def test_basic_save_load_ckpts(Basic: torch.nn.Module, tmp_path: Path) -> None:
     data = dataloader()
     model = Basic
-    cnt = count()
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
 
-    def loss_fn(model: torch.nn.Module, data: torch.Tensor) -> tuple[torch.Tensor, dict]:
-        next(cnt)
+    def loss_fn(data: torch.Tensor, model: torch.nn.Module) -> tuple[torch.Tensor, dict]:
         x, y = data[0], data[1]
         out = model(x)
         loss = criterion(out, y)
