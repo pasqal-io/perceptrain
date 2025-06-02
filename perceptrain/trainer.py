@@ -570,7 +570,7 @@ class Trainer(BaseTrainer):
             tuple[torch.Tensor, dict[str, Any]]: Loss and metrics for the batch.
         """
         with torch.no_grad():
-            loss_metrics = self.loss_fn(self.model, batch)
+            loss_metrics = self.loss_fn(batch, self.model)
         return self._modify_batch_end_loss_metrics(loss_metrics)
 
     def test(self, test_dataloader: DataLoader = None) -> list[tuple[torch.Tensor, dict[str, Any]]]:
@@ -616,7 +616,7 @@ class Trainer(BaseTrainer):
             tuple[torch.Tensor, dict[str, Any]]: Loss and metrics for the batch.
         """
         with torch.no_grad():
-            loss_metrics = self.loss_fn(self.model, batch)
+            loss_metrics = self.loss_fn(batch, self.model)
         return self._modify_batch_end_loss_metrics(loss_metrics)
 
     def _batch_iter(
