@@ -654,6 +654,8 @@ class Trainer(BaseTrainer):
         All metrics are prefixed with the proper state of the training process
          - "train_" or "val_" or "test_"
         A "{state}_loss" is added to metrics.
+        In order to save memory, all tensors are detached so that gradients  
+        are not tracked.
 
         Args:
             loss_metrics (tuple[torch.Tensor, dict[str, Any]]): Original loss and metrics.
@@ -664,9 +666,9 @@ class Trainer(BaseTrainer):
         for phase in ["train", "val", "test"]:
             if phase in self.training_stage:
                 loss, metrics = loss_metrics
-                updated_metrics = {f"{phase}_{key}": value for key, value in metrics.items()}
-                updated_metrics[f"{phase}_loss"] = loss
-                return loss, updated_metrics
+                updated_metrics = {f"{phase}_{key}": value.detach() for key, value in metrics.items()}
+                updated_metrics[f"{phase}_loss"] = loss.detach()
+                return loss.detach, updated_metrics
         return loss_metrics
 
     def _aggregate_result(
