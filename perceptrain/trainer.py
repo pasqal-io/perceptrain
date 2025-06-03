@@ -15,6 +15,7 @@ from perceptrain.data import DictDataLoader, OptimizeResult, data_to_device
 from perceptrain.information import InformationContent
 from perceptrain.optimize_step import optimize_step, update_ng_parameters
 from perceptrain.stages import TrainingStage
+from perceptrain.tensors import detach_loss_metrics
 
 from .train_utils.base_trainer import BaseTrainer
 from .train_utils.accelerator import Accelerator
@@ -666,12 +667,10 @@ class Trainer(BaseTrainer):
         for phase in ["train", "val", "test"]:
             if phase in self.training_stage:
                 loss, metrics = loss_metrics
-                updated_metrics = {
-                    f"{phase}_{key}": value.detach() for key, value in metrics.items()
-                }
-                updated_metrics[f"{phase}_loss"] = loss.detach()
-                return loss.detach(), updated_metrics
-        return loss_metrics
+                updated_metrics = {f"{phase}_{key}": value for key, value in metrics.items()}
+                updated_metrics[f"{phase}_loss"] = loss
+                loss_metrics = (loss, updated_metrics)
+        return detach_loss_metrics(loss_metrics)
 
     def _aggregate_result(
         self, result: tuple[torch.Tensor, dict[str, Any]]
