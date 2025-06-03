@@ -44,7 +44,7 @@ def promote_to(x: Tensor, dtype: Any) -> float | np.ndarray | Tensor:
 def detach_loss_metrics(
     loss_metrics: tuple[torch.Tensor, dict[str, Any]],
 ) -> tuple[torch.Tensor, dict[str, Any]]:
-    """Detach the tensors contained in the loss and metrics history"""
+    """Detach the tensors contained in the loss and metrics history."""
     loss, metrics = loss_metrics
     updated_metrics = {
         key: value.detach() for key, value in metrics.items() if isinstance(value, Tensor)
