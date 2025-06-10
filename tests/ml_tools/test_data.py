@@ -3,9 +3,13 @@ from __future__ import annotations
 import random
 from typing import Callable
 
+import numpy as np
 import pytest
+import scipy.stats as stats
 import torch
 from torch import Tensor
+
+from perceptrain.data import GenerativeIterableDataset
 
 
 @pytest.mark.parametrize("num_samples", [100, 0])
@@ -131,3 +135,23 @@ def test_r3_dataset_update_with_releases(make_mock_r3_dataset: Callable) -> None
     dataset.update(fitness_values)
 
     assert dataset.features[0] == dataset._resampled
+
+
+def test_generative_iterable_dataset() -> None:
+    """Uses the two-sample Kolmogorov-Smirnov test to check if the dataset samples from the.
+
+    input distribution.
+    """
+    num_samples = 1000
+
+    input_distribution = torch.distributions.Normal(0, 1)
+
+    dataset = GenerativeIterableDataset(input_distribution.sample)
+
+    input_dist_samples = input_distribution.sample((num_samples,)).detach().numpy()
+    _dataset_iter = iter(dataset)
+    dataset_samples = np.array([next(_dataset_iter).item() for _ in range(num_samples)])
+
+    res = stats.ks_2samp(input_dist_samples, dataset_samples)
+
+    assert res.pvalue > 0.05
