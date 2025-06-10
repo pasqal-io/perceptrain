@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import torch
+from typing import Callable
 import torch.nn as nn
 from pytest import fixture  # type: ignore
 from torch import Tensor, tensor
 
+from perceptrain.data import R3Dataset
 from perceptrain.optimizers import AdamLBFGS
 
 
@@ -48,3 +51,18 @@ def BasicNoInput() -> nn.Module:
 @fixture
 def adamlbfgs_optimizer(Basic: nn.Module) -> AdamLBFGS:
     return AdamLBFGS(Basic.parameters(), switch_epoch=5)
+
+
+@fixture
+def make_mock_r3_dataset() -> Callable:
+    """Factory function to create a mock R3Dataset."""
+
+    def proba_dist(num_samples: int) -> Tensor:
+        _dist = torch.distributions.Normal(0.0, 1.0)
+        return _dist.sample((num_samples,))
+
+    def _make_mock_r3_dataset(num_samples: int = 100, release_threshold: float = 1.0) -> R3Dataset:
+        """Creates the mock R3Dataset, parametrized by the number of samples and release threshold."""
+        return R3Dataset(proba_dist, num_samples, release_threshold)
+
+    return _make_mock_r3_dataset
