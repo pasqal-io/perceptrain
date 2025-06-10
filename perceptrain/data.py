@@ -116,6 +116,8 @@ class R3Dataset(Dataset):
 
         self._released: Tensor | None = None
         self._released_indices: Tensor | None = None
+        self._resampled: Tensor | None = None
+
         self.n_released: int = 0
         self.n_retained: int = 0
 
@@ -137,7 +139,8 @@ class R3Dataset(Dataset):
         self.n_retained = self.n_samples - self.n_released
 
     def _resample(self) -> Tensor:
-        return self.proba_dist(self.n_released)
+        self._resampled = self.proba_dist(self.n_released)
+        return self._resampled
 
     def update(self, fitness_values: Tensor) -> None:
         self._release(fitness_values)

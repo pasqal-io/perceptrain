@@ -104,3 +104,30 @@ def test_r3_dataset_resample_after_release(make_mock_r3_dataset: Callable) -> No
 
     assert isinstance(resampled, Tensor)
     assert torch.numel(resampled) == 2
+
+
+def test_r3_dataset_update_no_releases(make_mock_r3_dataset: Callable) -> None:
+    """Case in which no samples are updated."""
+    num_samples = 3
+    release_threshold = 1.0
+    fitness_values = Tensor([0.1, 0.3, 0.7])
+
+    dataset = make_mock_r3_dataset(num_samples, release_threshold)
+
+    features_before_udpate = dataset.features
+    dataset.update(fitness_values)
+
+    assert dataset.features is features_before_udpate
+
+
+def test_r3_dataset_update_with_releases(make_mock_r3_dataset: Callable) -> None:
+    """Case in which samples are updated."""
+    num_samples = 3
+    release_threshold = 1.0
+    fitness_values = Tensor([0.1, 3.1, 4.7])
+
+    dataset = make_mock_r3_dataset(num_samples, release_threshold)
+
+    dataset.update(fitness_values)
+
+    assert dataset.features[0] == dataset._resampled
