@@ -94,16 +94,12 @@ class R3Dataset(Dataset):
     def __init__(
         self, proba_dist: Callable[[int], Tensor], n_samples: int, release_threshold: float = 0.1
     ) -> None:
-        """Dataset for labelled data generated via a probability distribution.
+        """Dataset for R3 sampling (introduced in https://arxiv.org/abs/2207.02338#).
 
-        Opposite
-        to `GenerativeIterableDataset`, which samples at every iteration,
-        the probability distribution here is sampled once to populate the entire dataset.
-
-        Arguments:
-            proba_dist (ProbabilityDistribution): the probability distribution to be sampled.
-                It is a function of a single argument, i.e. the number of samples.
-            n_samples (int): the number of samples of the dataset.
+        Args:
+            proba_dist: Probability distribution function for generating features.
+            n_samples: Number of samples to generate.
+            release_threshold: Threshold for releasing samples.
         """
         if release_threshold < 0.0:
             raise ValueError("Release threshold must be non-negative.")
@@ -128,6 +124,7 @@ class R3Dataset(Dataset):
         return (self.features[index],)
 
     def _release(self, fitness_values: Tensor) -> None:
+        """Release samples if the corresponding fitness value is below the threshold."""
         if len(fitness_values) != self.n_samples:
             raise ValueError("fitness_values must have the same length as the dataset")
 
@@ -139,10 +136,16 @@ class R3Dataset(Dataset):
         self.n_retained = self.n_samples - self.n_released
 
     def _resample(self) -> Tensor:
+        """Resample released samples."""
         self._resampled = self.proba_dist(self.n_released)
         return self._resampled
 
     def update(self, fitness_values: Tensor) -> None:
+        """Update the dataset by releasing samples below fitness threshold and resampling.
+
+        Args:
+            fitness_values (Tensor): the fitness values of the samples.
+        """
         self._release(fitness_values)
         if self.n_released > 0:
             new_samples = self._resample()
