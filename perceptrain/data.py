@@ -127,10 +127,10 @@ class R3Dataset(Dataset):
             raise ValueError("fitness_values must have the same length as the dataset")
 
         release_mask = fitness_values < self.release_threshold
-        self._released_indices = torch.nonzero(release_mask).squeeze()
+        self._released_indices = torch.nonzero(release_mask).squeeze()  # can be empty
         self._released = self.features[self._released_indices]
 
-        self.n_released = len(self._released_indices) if self._released_indices.dim() > 0 else 0
+        self.n_released = torch.numel(self._released_indices)
         self.n_retained = self.n_samples - self.n_released
 
     def _resample(self) -> Tensor:
