@@ -105,6 +105,9 @@ class R3Dataset(Dataset):
                 It is a function of a single argument, i.e. the number of samples.
             n_samples (int): the number of samples of the dataset.
         """
+        if release_threshold < 0.0:
+            raise ValueError("Release threshold must be non-negative.")
+
         self.proba_dist = proba_dist
         self.n_samples = n_samples
         self.release_threshold = release_threshold
