@@ -30,3 +30,52 @@ def test_r3_dataset_getitem(make_mock_r3_dataset: Callable) -> None:
         idx = random.randint(0, len(dataset) - 1)
         assert len(dataset[idx]) == 1
         assert isinstance(dataset[idx][0], Tensor)
+
+
+def test_r3_dataset_release(make_mock_r3_dataset: Callable) -> None:
+    """Case in which some samples are released."""
+    num_samples = 3
+    release_threshold = 1.0
+    fitness_values = Tensor([0.1, 1.1, 2.1])
+
+    dataset = make_mock_r3_dataset(num_samples, release_threshold)
+    dataset._release(fitness_values)
+
+    assert dataset.n_released == 1
+    assert dataset.n_retained == 2
+
+
+def test_r3_dataset_release_all(make_mock_r3_dataset: Callable) -> None:
+    """Case in which all samples are released."""
+    num_samples = 3
+    release_threshold = 1.0
+    fitness_values = Tensor([0.1, 0.3, 0.9])
+
+    dataset = make_mock_r3_dataset(num_samples, release_threshold)
+    dataset._release(fitness_values)
+
+    assert dataset.n_released == 3
+    assert dataset.n_retained == 0
+
+
+def test_r3_dataset_release_none(make_mock_r3_dataset: Callable) -> None:
+    """Case in which no samples are released."""
+    num_samples = 3
+    release_threshold = 1.0
+    fitness_values = Tensor([1.1, 1.2, 2.1])
+
+    dataset = make_mock_r3_dataset(num_samples, release_threshold)
+    dataset._release(fitness_values)
+
+    assert dataset.n_released == 0
+    assert dataset.n_retained == 3
+
+
+def test_r3_dataset_release_invalid(make_mock_r3_dataset: Callable) -> None:
+    """Case in which the number of fitness values is not equal to the number of samples."""
+    num_samples = 3
+    fitness_values = Tensor([1.1, 1.2])
+
+    dataset = make_mock_r3_dataset(num_samples)
+    with pytest.raises(ValueError):
+        dataset._release(fitness_values)

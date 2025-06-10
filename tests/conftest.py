@@ -62,8 +62,11 @@ def make_mock_r3_dataset() -> Callable:
         _dist = torch.distributions.Normal(0.0, 1.0)
         return _dist.sample((num_samples,))
 
-    def _make_mock_r3_dataset(num_samples: int = 100, release_threshold: float = 1.0) -> R3Dataset:
-        """Creates the mock R3Dataset, parametrized by the number of samples and release threshold."""
+    def _make_mock_r3_dataset(num_samples: int = 10, release_threshold: float = 1.0) -> R3Dataset:
+        """Creates the mock R3Dataset, parametrized by the number of samples.
+
+        and release threshold.
+        """
         return R3Dataset(proba_dist, num_samples, release_threshold)
 
     return _make_mock_r3_dataset
