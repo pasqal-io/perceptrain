@@ -14,3 +14,9 @@ def test_r3_dataset_init(num_samples: int, make_mock_r3_dataset: Callable) -> No
 def test_r3_dataset_init_invalid_threshold(make_mock_r3_dataset: Callable) -> None:
     with pytest.raises(ValueError):
         dataset = make_mock_r3_dataset(release_threshold=-1.0)
+
+
+@pytest.mark.parametrize("num_samples", [100, 0])
+def test_r3_dataset_len(num_samples: int, make_mock_r3_dataset: Callable) -> None:
+    dataset = make_mock_r3_dataset(num_samples)
+    assert len(dataset) == num_samples
