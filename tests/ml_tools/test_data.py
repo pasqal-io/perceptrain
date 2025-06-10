@@ -4,6 +4,7 @@ import random
 from typing import Callable
 
 import pytest
+import torch
 from torch import Tensor
 
 
@@ -79,3 +80,27 @@ def test_r3_dataset_release_invalid(make_mock_r3_dataset: Callable) -> None:
     dataset = make_mock_r3_dataset(num_samples)
     with pytest.raises(ValueError):
         dataset._release(fitness_values)
+
+
+def test_r3_dataset_resample_before_release(make_mock_r3_dataset: Callable) -> None:
+    """Case in which resampling is attempted before release."""
+    dataset = make_mock_r3_dataset()
+    resampled = dataset._resample()
+
+    assert isinstance(resampled, Tensor)
+    assert torch.numel(resampled) == 0
+
+
+def test_r3_dataset_resample_after_release(make_mock_r3_dataset: Callable) -> None:
+    """Case in which resampling is attempted after release."""
+    num_samples = 3
+    release_threshold = 1.0
+    fitness_values = Tensor([0.1, 0.3, 1.1])
+
+    dataset = make_mock_r3_dataset(num_samples, release_threshold)
+    dataset._release(fitness_values)
+
+    resampled = dataset._resample()
+
+    assert isinstance(resampled, Tensor)
+    assert torch.numel(resampled) == 2
