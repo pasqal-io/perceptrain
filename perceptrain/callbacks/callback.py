@@ -10,16 +10,13 @@ import torch
 import torch.nn as nn
 from livelossplot.outputs import MatplotlibPlot
 from torch import Tensor
-from torch.utils.data import DataLoader
 
 from perceptrain.callbacks.saveload import load_checkpoint, write_checkpoint
 from perceptrain.callbacks.writer_registry import BaseWriter
 from perceptrain.config import TrainConfig
 from perceptrain.data import (
-    DictDataLoader,
     OptimizeResult,
     R3Dataset,
-    copy_dataloader_with_new_dataset,
 )
 from perceptrain.stages import TrainingStage
 
@@ -866,7 +863,6 @@ class R3Sampling(Callback):
         initial_dataset: R3Dataset,
         fitness_function: Callable[[Tensor, nn.Module], Tensor],
         threshold: float = 0.1,
-        dataloader_key: str | None = None,
         verbose: bool = False,
         called_every: int = 1,
     ):
@@ -881,7 +877,6 @@ class R3Sampling(Callback):
         """
         self.dataset = initial_dataset
         self.fitness_function = fitness_function
-        self.dataloader_key = dataloader_key
         self.verbose = True
 
         super().__init__(on="train_epoch_start", called_every=called_every)
@@ -893,23 +888,6 @@ class R3Sampling(Callback):
 
         # R3 update
         self.dataset.update(fitnesses)
-
-        # Update dataloader of the trainer with the re-sampled dataset.
-        if isinstance(trainer.train_dataloader, DataLoader):
-            trainer.train_dataloader = copy_dataloader_with_new_dataset(
-                trainer.train_dataloader, self.dataset
-            )
-        elif isinstance(trainer.train_dataloader, DictDataLoader):
-            if self.dataloader_key is not None:
-                dataloader_to_update = trainer.train_dataloader.dataloaders[self.dataloader_key]
-                trainer.train_dataloader.dataloaders[self.dataloader_key] = (
-                    copy_dataloader_with_new_dataset(dataloader_to_update, self.dataset)
-                )
-            else:
-                raise ValueError(
-                    "Updating a dictdataloader is not possible,"
-                    "unless the key of the dataloader to be updated is specified."
-                )
 
         if self.verbose:
             print(

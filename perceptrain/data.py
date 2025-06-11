@@ -161,15 +161,12 @@ class GenerativeIterableDataset(IterableDataset):
         self,
         proba_dist: Callable[[], Tensor],
     ) -> None:
-        """Dataset for labelled data generated via a probability distribution.
+        """Dataset for sampling from a probability distribution.
 
         Samples once per iteration.
 
-        Arguments:
-            proba_dist (ProbabilityDistribution): the probability distribution to be sampled.
-                It is a function of a single argument, i.e. the number of samples.
-            labelling_function (Callable[[torch.Tensor], torch.Tensor]): the function assigning
-                labels to the samples.
+        Args:
+            proba_dist: the probability distribution to be sampled.
         """
         self.proba_dist = proba_dist
 
@@ -203,33 +200,6 @@ def to_dataloader(*tensors: Tensor, batch_size: int = 1, infinite: bool = False)
     """
     ds = InfiniteTensorDataset(*tensors) if infinite else TensorDataset(*tensors)
     return DataLoader(ds, batch_size=batch_size)
-
-
-def copy_dataloader_with_new_dataset(dataloader: DataLoader, new_dataset: Dataset) -> DataLoader:
-    """Create a new DataLoader with the same configuration but a different dataset.
-
-    This is useful when you need to update the dataset of a DataLoader, since PyTorch
-    doesn't allow modifying the dataset attribute after initialization.
-
-    Arguments:
-        dataloader: The original DataLoader to copy configuration from
-        new_dataset: The new dataset to use in the copied DataLoader
-
-    Returns:
-        A new DataLoader with the same configuration as the original but with the new dataset
-    """
-    return DataLoader(
-        new_dataset,
-        batch_size=dataloader.batch_size,
-        shuffle=False,  # Preserve sampler instead of shuffle
-        sampler=dataloader.sampler,
-        num_workers=dataloader.num_workers,
-        collate_fn=dataloader.collate_fn,
-        pin_memory=dataloader.pin_memory,
-        drop_last=dataloader.drop_last,
-        timeout=dataloader.timeout,
-        worker_init_fn=dataloader.worker_init_fn,
-    )
 
 
 @singledispatch

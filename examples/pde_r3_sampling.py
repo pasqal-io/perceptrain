@@ -147,7 +147,6 @@ def main():
         initial_dataset=ds,
         fitness_function=fitness_function,
         threshold=THRESHOLD_RESIDUAL,
-        dataloader_key="pde",
         verbose=True,
         called_every=CALLBACK_R3_CALLED_EVERY,
     )
