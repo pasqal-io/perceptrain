@@ -51,10 +51,10 @@ class QNN(QuantumModel):
 
 
 class FFNN(nn.Module):
-    def __init__(self, layers: Sequence[int], activation_function: Callable = nn.GELU) -> None:
+    def __init__(self, layers: Sequence[int], activation_function: nn.Module = nn.GELU()) -> None:
         super().__init__()
         if len(layers) < 2:
-            raise ValueError("You must specify at least one input and one output layer.")
+            raise ValueError("Please specify at least one input and one output layer.")
 
         self.layers = layers
         self.activation_function = activation_function
@@ -62,12 +62,14 @@ class FFNN(nn.Module):
         sequence = []
         for n_i, n_o in zip(self.layers[:-2], self.layers[1:-1]):
             sequence.append(nn.Linear(n_i, n_o))
-            sequence.append(self.activation_function())
+            sequence.append(self.activation_function)
 
         sequence.append(nn.Linear(self.layers[-2], self.layers[-1]))
         self.nn = nn.Sequential(*sequence)
 
     def forward(self, x: Tensor) -> Tensor:
+        if x.shape[1] != self.layers[0]:
+            raise ValueError(f"Input tensor must have {self.layers[0]} features, got {x.shape[1]}")
         return self.nn(x)
 
 
