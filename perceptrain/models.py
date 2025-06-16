@@ -52,6 +52,13 @@ class QNN(QuantumModel):
 
 class FFNN(nn.Module):
     def __init__(self, layers: Sequence[int], activation_function: nn.Module = nn.GELU()) -> None:
+        """
+        Standard feedforward neural network.
+
+        Args:
+            layers (Sequence[int]): List of layer sizes.
+            activation_function (nn.Module): Activation function to use between layers.
+        """
         super().__init__()
         if len(layers) < 2:
             raise ValueError("Please specify at least one input and one output layer.")
@@ -68,6 +75,14 @@ class FFNN(nn.Module):
         self.nn = nn.Sequential(*sequence)
 
     def forward(self, x: Tensor) -> Tensor:
+        """Forward pass through the neural network.
+
+        Args:
+            x (Tensor): Input tensor of shape (batch_size, layers[0]).
+
+        Returns:
+            Tensor: Output tensor of shape (batch_size, layers[-1]).
+        """
         if x.shape[1] != self.layers[0]:
             raise ValueError(f"Input tensor must have {self.layers[0]} features, got {x.shape[1]}")
         return self.nn(x)
