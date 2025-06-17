@@ -94,9 +94,26 @@ class PINN(nn.Module):
         nn: nn.Module,
         equations: dict[str, Callable[[Tensor, nn.Module], Tensor]],
     ) -> None:
+        """Physical-informed neural network.
+
+        Args:
+            nn (nn.Module): Neural network module.
+            equations (dict[str, Callable[[Tensor, nn.Module], Tensor]]): Dictionary of equations.
+        """
         super().__init__()
         self.nn = nn
         self.equations = equations
 
     def forward(self, x: dict[str, Tensor]) -> dict[str, Tensor]:
+        """Forward pass through the physical-informed neural network.
+
+        Args:
+            x (dict[str, Tensor]): Dictionary of input tensors. The keys of the dictionary should
+                match the keys in the `equations` dictionary.
+
+        Returns:
+            dict[str, Tensor]: Dictionary of output tensors.
+        """
+        if not all(key in x for key in self.equations):
+            raise ValueError(f"Input dictionary must contain keys {list(self.equations.keys())}")
         return {key: self.equations[key](x_i, self.nn) for key, x_i in x.items()}
