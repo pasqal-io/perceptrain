@@ -15,7 +15,33 @@ from ..types import LossFunction, TBatch
 # TODO Return empty metrics unless the loss has more components (none in this module)
 
 
-def _compute_loss_based_on_model(
+def _compute_loss_and_metrics_standard(
+    batch: TBatch,
+    model: nn.Module,
+    criterion: nn.Module,
+) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+    inputs, labels = batch
+    predictions = model(inputs)
+    metrics: dict[str, torch.Tensor] = {}  # type: ignore[no-redef]
+    loss = criterion(predictions, labels)
+    return loss, metrics
+
+
+def _compute_loss_and_metrics_PINN(
+    batch: TBatch,
+    model: PINN,
+    criterion: nn.Module,
+) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+    inputs = {key: value[0] for key, value in batch.items()}  # type: ignore[attr-defined]
+    outputs = model(inputs)
+    metrics = {
+        key: criterion(outputs[key], torch.zeros_like(outputs[key])) for key in outputs.keys()
+    }
+    loss = sum([metrics[key] for key in outputs.keys()])
+    return loss, metrics
+
+
+def _compute_loss_and_metrics_based_on_model(
     batch: TBatch,
     model: nn.Module,
     criterion: nn.Module,
@@ -38,19 +64,9 @@ def _compute_loss_based_on_model(
             - metrics (dict[str, float]): A dictionary of metrics (loss components).
     """
     if isinstance(model, PINN):
-        inputs = {key: value[0] for key, value in batch.items()}  # type: ignore[attr-defined]
-        outputs = model(inputs)
-        metrics = {
-            key: criterion(outputs[key], torch.zeros_like(outputs[key])) for key in outputs.keys()
-        }
-        loss = sum([metrics[key] for key in outputs.keys()])
+        return _compute_loss_and_metrics_PINN(batch, model, criterion)
     else:
-        inputs, labels = batch
-        predictions = model(inputs)
-        metrics: dict[str, torch.Tensor] = {}  # type: ignore[no-redef]
-        loss = criterion(predictions, labels)
-
-    return loss, metrics
+        return _compute_loss_and_metrics_standard(batch, model, criterion)
 
 
 def mse_loss(batch: TBatch, model: nn.Module) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
@@ -65,7 +81,7 @@ def mse_loss(batch: TBatch, model: nn.Module) -> tuple[torch.Tensor, dict[str, t
             - loss (torch.Tensor): The computed loss value.
             - metrics (dict[str, float]): A dictionary of metrics (loss components).
     """
-    return _compute_loss_based_on_model(batch, model, criterion=nn.MSELoss())  # type: ignore[no-any-return]
+    return _compute_loss_and_metrics_based_on_model(batch, model, criterion=nn.MSELoss())  # type: ignore[no-any-return]
 
 
 def cross_entropy_loss(
