@@ -20,24 +20,22 @@ def _compute_loss_based_on_model(
     model: nn.Module,
     criterion: nn.Module,
 ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
-    """Computes the Mean Squared Error (MSE) loss between model.
+    """Computes loss and metrics based on the type of model.
 
-        Basically a wrapper of perceptrain around `nn.MSELoss` of pytorch.
-
-        The batch can be both a tuple of a single Tensor, or a tuple of two Tensors.
-        In the fist case, the batch is assumed to contain only the model inputs, as it
-        happens in unsupervised or semi-supervised learning.
-        In the second case, the bach is assumed to contain model inputs and labels, as it
-        happens in supervised learning.
+    The model can be either:
+    - PINN: loss and metrics are computed applying the criterion to the outputs (equation residuals)
+    - Other models: the loss is computed in a supervised manner, considering both model outputs and
+        labels. The metrics are an empty dictionary.
 
     Args:
-        batch:  tuple of tensors for the batch.
+        batch (dict[str, torch.Tensor]): Data batch. The structure of the batch depends on the model
+            type.
         model (nn.Module): The PyTorch model used for generating predictions.
 
     Returns:
         Tuple[torch.Tensor, dict[str, float]]:
-            - loss (torch.Tensor): The computed MSE loss value.
-            - metrics (dict[str, float]): A dictionary with the MSE loss value.
+            - loss (torch.Tensor): The computed loss value.
+            - metrics (dict[str, float]): A dictionary of metrics (loss components).
     """
     if isinstance(model, PINN):
         inputs = {key: value[0] for key, value in batch.items()}  # type: ignore[attr-defined]
@@ -56,12 +54,34 @@ def _compute_loss_based_on_model(
 
 
 def mse_loss(batch: TBatch, model: nn.Module) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+    """Mean Squared Error Loss.
+
+    Args:
+        batch (TBatch): The input batch.
+        model (nn.Module): The model to compute the loss for.
+
+    Returns:
+        Tuple[torch.Tensor, dict[str, float]]:
+            - loss (torch.Tensor): The computed loss value.
+            - metrics (dict[str, float]): A dictionary of metrics (loss components).
+    """
     return _compute_loss_based_on_model(batch, model, criterion=nn.MSELoss())  # type: ignore[no-any-return]
 
 
 def cross_entropy_loss(
     batch: TBatch, model: nn.Module
 ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+    """Cross Entropy Loss.
+
+    Args:
+        batch (TBatch): The input batch.
+        model (nn.Module): The model to compute the loss for.
+
+    Returns:
+        Tuple[torch.Tensor, dict[str, float]]:
+            - loss (torch.Tensor): The computed loss value.
+            - metrics (dict[str, float]): Empty dictionary. Not relevant for this loss function.
+    """
     predictions, labels = model(batch)
     metrics: dict[str, torch.Tensor] = {}
     loss = nn.CrossEntropyLoss(predictions, labels)
