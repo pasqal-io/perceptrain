@@ -99,6 +99,8 @@ class PINN(nn.Module):
         Args:
             nn (nn.Module): Neural network module.
             equations (dict[str, Callable[[Tensor, nn.Module], Tensor]]): Dictionary of equations.
+                These are assumed in the form LHS(x) = 0, so each term of `equations` should
+                provide the left-hand side.
         """
         super().__init__()
         self.nn = nn
