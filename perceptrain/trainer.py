@@ -15,6 +15,7 @@ from perceptrain.data import DictDataLoader, OptimizeResult
 from perceptrain.information import InformationContent
 from perceptrain.optimize_step import optimize_step, update_ng_parameters
 from perceptrain.stages import TrainingStage
+from perceptrain.tensors import detach_loss_metrics
 
 from .train_utils.accelerator import Accelerator
 from .train_utils.base_trainer import BaseTrainer
@@ -654,6 +655,8 @@ class Trainer(BaseTrainer):
         All metrics are prefixed with the proper state of the training process
          - "train_" or "val_" or "test_"
         A "{state}_loss" is added to metrics.
+        In order to save memory, all tensors are detached so that gradients
+        are not tracked.
 
         Args:
             loss_metrics (tuple[torch.Tensor, dict[str, Any]]): Original loss and metrics.
@@ -666,8 +669,8 @@ class Trainer(BaseTrainer):
                 loss, metrics = loss_metrics
                 updated_metrics = {f"{phase}_{key}": value for key, value in metrics.items()}
                 updated_metrics[f"{phase}_loss"] = loss
-                return loss, updated_metrics
-        return loss_metrics
+                loss_metrics = (loss, updated_metrics)
+        return detach_loss_metrics(loss_metrics)
 
     def _aggregate_result(
         self, result: tuple[torch.Tensor, dict[str, Any]]
