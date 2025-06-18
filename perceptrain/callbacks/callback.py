@@ -866,9 +866,7 @@ class R3Sampling(Callback):
         verbose: bool = False,
         called_every: int = 1,
     ):
-        """Note that only the first tensor in the dataset is considered, and it is assumed to be.
-
-        the tensor of features.
+        """Note that only the first tensor in the dataset is considered and it is assumed to be the tensor of features.
 
         We pass the dataset, not the single tensors, because the object is more general, because
         map/iterable-style are chosen upstream and because we can use the init constructor of
