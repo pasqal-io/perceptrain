@@ -865,12 +865,17 @@ class R3Sampling(Callback):
         verbose: bool = False,
         called_every: int = 1,
     ):
-        """Note that only the first tensor in the dataset is considered and it is assumed to be the tensor of features.
+        """Callback for R3 sampling (https://arxiv.org/abs/2207.02338#).
 
-        We pass the dataset, not the single tensors, because the object is more general, because
-        map/iterable-style are chosen upstream and because we can use the init constructor of
-        datasets.
-        Assumes supervised learning (labels).
+        Args:
+            initial_dataset (R3Dataset): The dataset updating according to the R3 scheme.
+            fitness_function (Callable[[Tensor, nn.Module], Tensor]): The function to
+                compute fitness scores for samples. Based on the fitness scores, the
+                samples are retained or released.
+            verbose (bool, optional): Whether to print the callback's summary.
+                Defaults to False.
+            called_every (int, optional): Every how many events the callback is called.
+                Defaults to 1.
         """
         self.dataset = initial_dataset
         self.fitness_function = fitness_function
@@ -879,7 +884,14 @@ class R3Sampling(Callback):
         super().__init__(on="train_epoch_start", called_every=called_every)
 
     def run_callback(self, trainer: Any, config: TrainConfig, writer: BaseWriter) -> None:
-        """Eventually make a new dataloader from a dataset.__init__() call."""
+        """Runs the callback.
+
+        Computes fitness scores for samples and triggers the dataset update.
+        Args:
+            trainer (Any): The trainer instance.
+            config (TrainConfig): The training configuration.
+            writer (BaseWriter): The writer instance.
+        """
         # Compute fitness function on all samples
         fitnesses = self.fitness_function(self.dataset.features, trainer.model)
 
