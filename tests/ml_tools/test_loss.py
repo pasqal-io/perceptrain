@@ -157,3 +157,21 @@ def test_cross_entropy_loss(
 
     assert metrics_predicted == {}
     assert torch.isclose(loss_exact, loss_predicted)
+
+
+@pytest.mark.skip(reason="Test not yet implemented")
+def test_grad_weighted_loss_weights_correct_update() -> None:
+    """Tests if the weights are updated as expected."""
+    pass
+
+
+@pytest.mark.skip(reason="Test not yet implemented")
+def test_grad_weighted_loss_weights_no_update() -> None:
+    """For alpha=1, tests if the weights are not updated."""
+    pass
+
+
+@pytest.mark.skip(reason="Test not yet implemented")
+def test_grad_weighted_loss_loss_compute() -> None:
+    """Given the weights, checks if the loss is computed as the weighted sum of the metrics."""
+    pass
