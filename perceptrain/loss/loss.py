@@ -11,10 +11,6 @@ from perceptrain.models import PINN
 
 from ..types import LossFunction, TBatch
 
-# TODO If the only difference between losses is `criterion`, we can refactor
-# this module
-# TODO Return empty metrics unless the loss has more components (none in this module)
-
 
 def _compute_loss_and_metrics_standard(
     batch: tuple[Tensor, Tensor],
