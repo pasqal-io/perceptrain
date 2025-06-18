@@ -102,6 +102,7 @@ dependencies = [
   "mkdocs-exclude",
   "markdown-exec",
   "mike",
+  "ipykernel",
 ]
 features = ["mlflow"]
 
