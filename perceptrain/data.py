@@ -96,6 +96,13 @@ class R3Dataset(Dataset):
     ) -> None:
         """Dataset for R3 sampling (introduced in https://arxiv.org/abs/2207.02338#).
 
+        This is an evolutionary dataset, that updates itself during training, based on the fitness values of the samples.
+        It releases samples if the corresponding fitness value is below the threshold and retains them otherwise.
+        The released samples are replaced by new samples generated from a probability distribution.
+
+        While this scheme was originally proposed for training physics-informed neural networks,
+        this implementation can be used for any type of data that can be sampled from a probability distribution.
+
         Args:
             proba_dist: Probability distribution function for generating features.
             n_samples: Number of samples to generate.
