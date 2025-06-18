@@ -7,9 +7,10 @@ name = "perceptrain"
 description = "Pasqal interface for training machine learning models."
 readme = "README.md"
 authors = [
-    { name = "Manu Lahariya", email = "manu.lahariya@pasqal.com" },
-    { name = "Daniele Cucurachi", email = "daniele.cucurachi@pasqal.com" },
-    { name = "Ignacio Fernández Graña", email = "ignacio.fernandez-grana@pasqal.com" },
+  { name = "Manu Lahariya", email = "manu.lahariya@pasqal.com" },
+  { name = "Daniele Cucurachi", email = "daniele.cucurachi@pasqal.com" },
+  { name = "Ignacio Fernández Graña", email = "ignacio.fernandez-grana@pasqal.com" },
+  { name = "Giorgio Tosti Balducci", email = "giorgio.tosti-balducci@pasqal.com" },
 ]
 requires-python = ">=3.9"
 license = { text = "Apache 2.0" }
