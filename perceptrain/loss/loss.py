@@ -54,6 +54,7 @@ def _compute_loss_and_metrics_based_on_model(
         batch (dict[str, Tensor]): Data batch. The structure of the batch depends on the model
             type.
         model (nn.Module): The PyTorch model used for generating predictions.
+        criterion (nn.Module): The loss criterion used for computing the loss (e.g., nn.MSELoss()).
 
     Returns:
         Tuple[Tensor, dict[str, float]]:
