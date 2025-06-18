@@ -112,12 +112,27 @@ class GradWeightedLoss:
         batch: dict[str, Tensor],
         unweighted_loss_function: LossFunction,
         optimizer: torch.optim.Optimizer | ng.optimization.Optimizer,
-        gradient_weights: dict[str, float | Tensor],
+        metric_weights: dict[str, float | Tensor],
         fixed_metric: str,
         alpha: float = 0.9,
     ):
+        """Loss function with gradient weighting for PINN training.
+
+        Implements the learning rate annealing algorithm in https://arxiv.org/abs/2001.04536.
+
+        Args:
+            batch (dict[str, Tensor]): Batch of data.
+            unweighted_loss_function (LossFunction): Loss function applied before weighting.
+            optimizer (torch.optim.Optimizer | ng.optimization.Optimizer): torch or nevergrad
+                optimizer for gradient or gradient-free optimization.
+            metric_weights (dict[str, float | Tensor]): Initial metric weights.
+            fixed_metric (str): Metric whose weight is not updated and whose gradient determines the
+                weights of the other metrics.
+            alpha (float, optional): Scaling factor. Corresponds to the inertia of the weights to
+                updates. Defaults to 0.9.
+        """
         self.metric_names = batch.keys()
-        self.gradient_weights = gradient_weights
+        self.metric_weights = metric_weights
         self.gradients: dict[str, dict[str, Tensor]] = {key: {} for key in self.metric_names}
         self.unweighted_loss_function = unweighted_loss_function
         self.optimizer = optimizer
@@ -152,12 +167,12 @@ class GradWeightedLoss:
         for key, val in self.gradients.items():
             if key != self.fixed_metric:
                 mean_grad = torch.cat(list(val.values())).abs().mean()
-                self.gradient_weights[key] = (1.0 - self.alpha) * self.gradient_weights[
+                self.metric_weights[key] = (1.0 - self.alpha) * self.metric_weights[
                     key
                 ] + self.alpha * max_grad / mean_grad
 
         # calculate reweighted loss and metrics
-        reweighted_metrics = {key: val * self.gradient_weights[key] for key, val in metrics.items()}
+        reweighted_metrics = {key: val * self.metric_weights[key] for key, val in metrics.items()}
         reweighted_loss = torch.sum(torch.stack([val for val in reweighted_metrics.values()]))
 
         return reweighted_loss, reweighted_metrics
