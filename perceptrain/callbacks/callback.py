@@ -887,6 +887,7 @@ class R3Sampling(Callback):
         """Runs the callback.
 
         Computes fitness scores for samples and triggers the dataset update.
+
         Args:
             trainer (Any): The trainer instance.
             config (TrainConfig): The training configuration.
