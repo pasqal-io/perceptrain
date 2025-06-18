@@ -184,7 +184,7 @@ class GradWeightedLoss:
         return loss, metrics
 
 
-def get_loss(loss: str | Callable | None) -> Callable:
+def get_loss(loss_fn: str | Callable | None) -> Callable:
     """
     Returns the appropriate loss function based on the input argument.
 
@@ -202,15 +202,15 @@ def get_loss(loss: str | Callable | None) -> Callable:
     Raises:
         ValueError: If `loss_fn` is a string but not a supported loss function name.
     """
-    if callable(loss):
-        return loss
-    elif isinstance(loss, str):
-        if loss == "mse":
+    if callable(loss_fn):
+        return loss_fn
+    elif isinstance(loss_fn, str):
+        if loss_fn == "mse":
             return mse_loss
-        elif loss == "cross_entropy":
+        elif loss_fn == "cross_entropy":
             return cross_entropy_loss
         else:
-            raise ValueError(f"Unsupported loss function: {loss}")
+            raise ValueError(f"Unsupported loss function: {loss_fn}")
     else:
         # default case
         return mse_loss
