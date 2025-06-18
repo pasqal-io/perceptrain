@@ -862,7 +862,6 @@ class R3Sampling(Callback):
         self,
         initial_dataset: R3Dataset,
         fitness_function: Callable[[Tensor, nn.Module], Tensor],
-        threshold: float = 0.1,
         verbose: bool = False,
         called_every: int = 1,
     ):
