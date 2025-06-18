@@ -94,7 +94,7 @@ class PINN(nn.Module):
         nn: nn.Module,
         equations: dict[str, Callable[[Tensor, nn.Module], Tensor]],
     ) -> None:
-        """Physical-informed neural network.
+        """Physics-informed neural network.
 
         Args:
             nn (nn.Module): Neural network module.

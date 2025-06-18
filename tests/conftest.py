@@ -73,12 +73,12 @@ def make_mock_r3_dataset() -> Callable:
     return _make_mock_r3_dataset
 
 
-@fixture
+@fixture(scope="session")
 def mock_ffnn() -> FFNN:
     return FFNN(layers=[10, 2, 5, 3], activation_function=nn.Tanh())
 
 
-@fixture
+@fixture(scope="session")
 def mock_pde() -> Callable[[Tensor, nn.Module], Tensor]:
     alpha, beta = 0.1, 0.2
 
@@ -97,7 +97,7 @@ def mock_pde() -> Callable[[Tensor, nn.Module], Tensor]:
     return pde
 
 
-@fixture
+@fixture(scope="session")
 def mock_bc1() -> Callable[[Tensor, nn.Module], Tensor]:
     def bc(x: Tensor, model: nn.Module) -> Tensor:
         u = model(x)
@@ -106,7 +106,7 @@ def mock_bc1() -> Callable[[Tensor, nn.Module], Tensor]:
     return bc
 
 
-@fixture
+@fixture(scope="session")
 def mock_bc2() -> Callable[[Tensor, nn.Module], Tensor]:
     def bc(x: Tensor, model: nn.Module) -> Tensor:
         u = model(x)
@@ -122,7 +122,7 @@ def mock_bc2() -> Callable[[Tensor, nn.Module], Tensor]:
     return bc
 
 
-@fixture
+@fixture(scope="session")
 def mock_pinn(
     mock_pde: Callable[[Tensor, nn.Module], Tensor],
     mock_bc1: Callable[[Tensor, nn.Module], Tensor],

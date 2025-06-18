@@ -5,6 +5,7 @@ from typing import Callable
 import nevergrad as ng
 import torch
 import torch.nn as nn
+from torch import Tensor
 
 from perceptrain.models import PINN
 
@@ -16,23 +17,23 @@ from ..types import LossFunction, TBatch
 
 
 def _compute_loss_and_metrics_standard(
-    batch: TBatch,
+    batch: tuple[Tensor, Tensor],
     model: nn.Module,
     criterion: nn.Module,
-) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+) -> tuple[Tensor, dict[str, Tensor]]:
     inputs, labels = batch
     predictions = model(inputs)
-    metrics: dict[str, torch.Tensor] = {}  # type: ignore[no-redef]
+    metrics: dict[str, Tensor] = {}  # type: ignore[no-redef]
     loss = criterion(predictions, labels)
     return loss, metrics
 
 
-def _compute_loss_and_metrics_PINN(
-    batch: TBatch,
+def _compute_loss_and_metrics_pinn(
+    batch: dict[str, Tensor],
     model: PINN,
     criterion: nn.Module,
-) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
-    inputs = {key: value[0] for key, value in batch.items()}  # type: ignore[attr-defined]
+) -> tuple[Tensor, dict[str, Tensor]]:
+    inputs = {key: value for key, value in batch.items()}  # type: ignore[attr-defined]
     outputs = model(inputs)
     metrics = {
         key: criterion(outputs[key], torch.zeros_like(outputs[key])) for key in outputs.keys()
@@ -45,7 +46,7 @@ def _compute_loss_and_metrics_based_on_model(
     batch: TBatch,
     model: nn.Module,
     criterion: nn.Module,
-) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+) -> tuple[Tensor, dict[str, Tensor]]:
     """Computes loss and metrics based on the type of model.
 
     The model can be either:
@@ -54,22 +55,22 @@ def _compute_loss_and_metrics_based_on_model(
         labels. The metrics are an empty dictionary.
 
     Args:
-        batch (dict[str, torch.Tensor]): Data batch. The structure of the batch depends on the model
+        batch (dict[str, Tensor]): Data batch. The structure of the batch depends on the model
             type.
         model (nn.Module): The PyTorch model used for generating predictions.
 
     Returns:
-        Tuple[torch.Tensor, dict[str, float]]:
-            - loss (torch.Tensor): The computed loss value.
+        Tuple[Tensor, dict[str, float]]:
+            - loss (Tensor): The computed loss value.
             - metrics (dict[str, float]): A dictionary of metrics (loss components).
     """
     if isinstance(model, PINN):
-        return _compute_loss_and_metrics_PINN(batch, model, criterion)
+        return _compute_loss_and_metrics_pinn(batch, model, criterion)  # type: ignore[arg-type]
     else:
-        return _compute_loss_and_metrics_standard(batch, model, criterion)
+        return _compute_loss_and_metrics_standard(batch, model, criterion)  # type: ignore[arg-type]
 
 
-def mse_loss(batch: TBatch, model: nn.Module) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+def mse_loss(batch: TBatch, model: nn.Module) -> tuple[Tensor, dict[str, Tensor]]:
     """Mean Squared Error Loss.
 
     Args:
@@ -77,16 +78,14 @@ def mse_loss(batch: TBatch, model: nn.Module) -> tuple[torch.Tensor, dict[str, t
         model (nn.Module): The model to compute the loss for.
 
     Returns:
-        Tuple[torch.Tensor, dict[str, float]]:
-            - loss (torch.Tensor): The computed loss value.
+        Tuple[Tensor, dict[str, float]]:
+            - loss (Tensor): The computed loss value.
             - metrics (dict[str, float]): A dictionary of metrics (loss components).
     """
     return _compute_loss_and_metrics_based_on_model(batch, model, criterion=nn.MSELoss())  # type: ignore[no-any-return]
 
 
-def cross_entropy_loss(
-    batch: TBatch, model: nn.Module
-) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+def cross_entropy_loss(batch: TBatch, model: nn.Module) -> tuple[Tensor, dict[str, Tensor]]:
     """Cross Entropy Loss.
 
     Args:
@@ -94,13 +93,15 @@ def cross_entropy_loss(
         model (nn.Module): The model to compute the loss for.
 
     Returns:
-        Tuple[torch.Tensor, dict[str, float]]:
-            - loss (torch.Tensor): The computed loss value.
+        Tuple[Tensor, dict[str, float]]:
+            - loss (Tensor): The computed loss value.
             - metrics (dict[str, float]): Empty dictionary. Not relevant for this loss function.
     """
-    predictions, labels = model(batch)
-    metrics: dict[str, torch.Tensor] = {}
-    loss = nn.CrossEntropyLoss(predictions, labels)
+    inputs, labels = batch
+    predictions = model(inputs)
+    metrics: dict[str, Tensor] = {}
+    criterion = nn.CrossEntropyLoss()
+    loss = criterion(predictions, labels)
 
     return loss, metrics
 
@@ -108,16 +109,16 @@ def cross_entropy_loss(
 class GradWeightedLoss:
     def __init__(
         self,
-        batch: dict[str, torch.Tensor],
+        batch: dict[str, Tensor],
         unweighted_loss_function: LossFunction,
         optimizer: torch.optim.Optimizer | ng.optimization.Optimizer,
-        gradient_weights: dict[str, float | torch.Tensor],
+        gradient_weights: dict[str, float | Tensor],
         fixed_metric: str,
         alpha: float = 0.9,
     ):
         self.metric_names = batch.keys()
         self.gradient_weights = gradient_weights
-        self.gradients: dict[str, dict[str, torch.Tensor]] = {key: {} for key in self.metric_names}
+        self.gradients: dict[str, dict[str, Tensor]] = {key: {} for key in self.metric_names}
         self.unweighted_loss_function = unweighted_loss_function
         self.optimizer = optimizer
         self.fixed_metric = fixed_metric
@@ -125,7 +126,7 @@ class GradWeightedLoss:
 
     def _update_metrics_gradients(
         self,
-        metrics: dict[str, torch.Tensor],
+        metrics: dict[str, Tensor],
         model_parameters: list[tuple[str, torch.nn.parameter.Parameter]],
     ) -> None:
         if isinstance(self.optimizer, torch.optim.Optimizer):
@@ -139,8 +140,8 @@ class GradWeightedLoss:
             }
 
     def _gradient_norm_weighting(
-        self, metrics: dict[str, torch.Tensor]
-    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        self, metrics: dict[str, Tensor]
+    ) -> tuple[Tensor, dict[str, Tensor]]:
         fixed_grad = self.gradients[self.fixed_metric]
         fixed_dthetas = torch.cat(tuple(dlayer for dlayer in fixed_grad.values()))
         #
@@ -162,8 +163,8 @@ class GradWeightedLoss:
         return reweighted_loss, reweighted_metrics
 
     def __call__(
-        self, batch: tuple[dict[str, torch.Tensor],], model: nn.Module
-    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        self, batch: tuple[dict[str, Tensor],], model: nn.Module
+    ) -> tuple[Tensor, dict[str, Tensor]]:
         _, unscaled_metrics = self.unweighted_loss_function(batch, model)
         self._update_metrics_gradients(unscaled_metrics, list(model.named_parameters()))
         loss, metrics = self._gradient_norm_weighting(unscaled_metrics)
