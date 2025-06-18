@@ -6,10 +6,10 @@ Perceptrain provides a powerful callback system for customizing various stages o
 
 Below is a list of the default callbacks already implemented in the `CallbackManager` used with [`Trainer`][perceptrain.Trainer]:
 
-- **`train_start`**: `TrackPlots`, `SaveCheckpoint`, `WriteMetrics`
-- **`train_epoch_end`**: `SaveCheckpoint`, `PrintMetrics`, `TrackPlots`, `WriteMetrics`
+- **`train_start`**: `WritePlots`, `SaveCheckpoint`, `WriteMetrics`
+- **`train_epoch_end`**: `SaveCheckpoint`, `PrintMetrics`, `WritePlots`, `WriteMetrics`
 - **`val_epoch_end`**: `SaveBestCheckpoint`, `WriteMetrics`
-- **`train_end`**: `LogHyperparameters`, `LogModelTracker`, `WriteMetrics`, `SaveCheckpoint`, `TrackPlots`
+- **`train_end`**: `LogHyperparameters`, `LogModelTracker`, `WriteMetrics`, `SaveCheckpoint`, `WritePlots`
 
 This guide covers how to define and use callbacks in `TrainConfig`, integrate them with the `Trainer` class, and create custom callbacks using hooks.
 

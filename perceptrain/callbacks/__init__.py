@@ -15,8 +15,8 @@ from .callback import (
     R3Sampling,
     SaveBestCheckpoint,
     SaveCheckpoint,
-    TrackPlots,
     WriteMetrics,
+    WritePlots,
 )
 from .callbackmanager import CallbacksManager
 from .writer_registry import get_writer
@@ -29,7 +29,7 @@ __all__ = [
     "LoadCheckpoint",
     "LogHyperparameters",
     "LogModelTracker",
-    "TrackPlots",
+    "WritePlots",
     "PrintMetrics",
     "R3Sampling",
     "SaveBestCheckpoint",

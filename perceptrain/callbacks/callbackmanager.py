@@ -12,8 +12,8 @@ from perceptrain.callbacks.callback import (
     PrintMetrics,
     SaveBestCheckpoint,
     SaveCheckpoint,
-    TrackPlots,
     WriteMetrics,
+    WritePlots,
 )
 from perceptrain.config import TrainConfig
 from perceptrain.data import OptimizeResult
@@ -41,7 +41,7 @@ class CallbacksManager:
     callback_map = {
         "PrintMetrics": PrintMetrics,
         "WriteMetrics": WriteMetrics,
-        "TrackPlots": TrackPlots,
+        "WritePlots": WritePlots,
         "SaveCheckpoint": SaveCheckpoint,
         "LoadCheckpoint": LoadCheckpoint,
         "LogModelTracker": LogModelTracker,
@@ -77,7 +77,7 @@ class CallbacksManager:
         """Initializes and adds the necessary callbacks based on the configuration."""
         # Train Start
         self.callbacks = copy.deepcopy(self.config.callbacks)
-        self.add_callback("TrackPlots", "train_start")
+        self.add_callback("WritePlots", "train_start")
         if self.config.val_every:
             self.add_callback("WriteMetrics", "train_start")
             # only save the first checkpoint if not checkpoint_best_only
@@ -96,7 +96,7 @@ class CallbacksManager:
 
         # Plotting
         if self.config.plot_every:
-            self.add_callback("TrackPlots", "train_epoch_end", self.config.plot_every)
+            self.add_callback("WritePlots", "train_epoch_end", self.config.plot_every)
 
         # Writing
         if self.config.write_every:
@@ -112,7 +112,7 @@ class CallbacksManager:
         if self.config.log_model:
             self.add_callback("LogModelTracker", "train_end")
         if self.config.plot_every:
-            self.add_callback("TrackPlots", "train_end")
+            self.add_callback("WritePlots", "train_end")
         # only save the last checkpoint if not checkpoint_best_only
         if not self.config.checkpoint_best_only:
             if self.config.checkpoint_every != 0:

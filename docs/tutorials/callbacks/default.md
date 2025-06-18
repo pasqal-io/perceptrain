@@ -34,15 +34,15 @@ config = TrainConfig(
 )
 ```
 
-### 3. `TrackPlots`
+### 3. `WritePlots`
 
 Plots metrics based on user-defined plotting functions.
 
 ```python exec="on" source="material-block" html="1"
 from perceptrain import TrainConfig
-from perceptrain.callbacks import TrackPlots
+from perceptrain.callbacks import WritePlots
 
-plot_metrics_callback = TrackPlots(on="train_epoch_end", called_every=100)
+plot_metrics_callback = WritePlots(on="train_epoch_end", called_every=100)
 
 config = TrainConfig(
     max_iter=5000,
