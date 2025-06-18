@@ -875,7 +875,7 @@ class R3Sampling(Callback):
         """
         self.dataset = initial_dataset
         self.fitness_function = fitness_function
-        self.verbose = True
+        self.verbose = verbose
 
         super().__init__(on="train_epoch_start", called_every=called_every)
 
