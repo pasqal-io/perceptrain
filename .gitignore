@@ -82,6 +82,3 @@ mlartifacts/
 
 # pyright
 pyrightconfig.json
-
-# sketches and notes
-notes.md
