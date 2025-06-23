@@ -52,19 +52,17 @@ def evaluate_bc(x: torch.Tensor, model: torch.nn.Module) -> torch.Tensor:
 
 def make_problem_dataloaders(batch_sizes: dict[str, int]) -> tuple[DataLoader, DataLoader]:
     x_interior = torch.rand(size=(100, 1), requires_grad=True) * 2 - 1  # points in [-1, 1]
-    x_bc = torch.tensor([0.0])
+    x_bc = torch.tensor([0.0]).view(1, 1)
+
+    def collate_fn(batch: list[tuple[torch.Tensor]]):
+        """Returns a tensor of shape (batch_size, 1)."""
+        return torch.cat([x[0] for x in batch], dim=0).view(-1, 1)
 
     return (
         to_dataloader(
-            x_interior,
-            batch_size=batch_sizes["ode"],
-            infinite=True,
+            x_interior, batch_size=batch_sizes["ode"], infinite=True, collate_fn=collate_fn
         ),
-        to_dataloader(
-            x_bc,
-            batch_size=batch_sizes["bc"],
-            infinite=True,
-        ),
+        to_dataloader(x_bc, batch_size=batch_sizes["bc"], infinite=True, collate_fn=collate_fn),
     )
 
 
@@ -141,10 +139,10 @@ def main():
         max_iter=MAX_ITER,
         callbacks=[callback_weights, callback_metrics_loss, callback_live_loss],
     )
-    trainer = Trainer(model, optimizer, train_config, loss_fn=loss, train_dataloader=ddl)
+    trainer = Trainer(model, optimizer, train_config, loss_fn=loss)
 
     # fit
-    trainer.fit()
+    trainer.fit(train_dataloader=ddl)
 
 
 if __name__ == "__main__":
