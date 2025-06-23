@@ -126,8 +126,8 @@ class R3Dataset(Dataset):
     def __len__(self) -> int:
         return self.n_samples
 
-    def __getitem__(self, index: int) -> tuple[Tensor]:
-        return (self.features[index],)
+    def __getitem__(self, index: int) -> Tensor:
+        return self.features[index]
 
     def _release(self, fitness_values: Tensor) -> None:
         """Release samples if the corresponding fitness value is below the threshold."""

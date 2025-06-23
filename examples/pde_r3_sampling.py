@@ -61,7 +61,7 @@ def initial_uniform(n: int = 1) -> torch.Tensor:
     return torch.stack((ts, xs), dim=1)
 
 
-def advection_equation(x: torch.Tensor, model: torch.nn.Module, beta: float = 1.0) -> torch.Tensor:
+def evaluate_pde(x: torch.Tensor, model: torch.nn.Module, beta: float = 1.0) -> torch.Tensor:
     u = model(x)
     grad_u = torch.autograd.grad(
         outputs=u,
@@ -75,22 +75,18 @@ def advection_equation(x: torch.Tensor, model: torch.nn.Module, beta: float = 1.
     return dudt + beta * dudx
 
 
-def evaluate_pde(
-    batch: tuple[torch.Tensor], model: torch.nn.Module, beta: float = 1.0
-) -> torch.Tensor:
-    x = batch[0]
-    return advection_equation(x, model, beta)
-
-
-def evaluate_periodic_bc(batch: tuple[torch.Tensor], model: torch.nn.Module):
-    x = batch[0]
+def evaluate_periodic_bc(x: torch.Tensor, model: torch.nn.Module):
     x_shifted = torch.stack((x[:, 0], (x[:, 1] + 2 * torch.pi) % (4 * torch.pi)), dim=1)
     return model(x) - model(x_shifted)
 
 
-def evaluate_initial(batch: tuple[torch.Tensor], model: torch.nn.Module):
-    x = batch[0]
+def evaluate_initial(x: torch.Tensor, model: torch.nn.Module):
     return model(x) - torch.sin(x[:, 1])
+
+
+def collate_fn(batch: list[tuple[torch.Tensor]]):
+    """Returns a tensor of shape (batch_size, 2)."""
+    return torch.stack([x[0] for x in batch], dim=0)
 
 
 def main():
@@ -125,9 +121,17 @@ def main():
     # dataloader(s)
     dl_pde = DataLoader(ds, batch_size=BATCH_SIZE_INTERIOR)
     dl_bc = to_dataloader(
-        periodic_boundary_uniform(N_SAMPLES_BC), batch_size=BATCH_SIZE_BC, infinite=True
+        periodic_boundary_uniform(N_SAMPLES_BC),
+        batch_size=BATCH_SIZE_BC,
+        infinite=True,
+        collate_fn=collate_fn,
     )
-    dl_ic = to_dataloader(initial_uniform(N_SAMPLES_IC), batch_size=BATCH_SIZE_IC, infinite=True)
+    dl_ic = to_dataloader(
+        initial_uniform(N_SAMPLES_IC),
+        batch_size=BATCH_SIZE_IC,
+        infinite=True,
+        collate_fn=collate_fn,
+    )
     ddl = DictDataLoader(dataloaders={"pde": dl_pde, "bc": dl_bc, "ic": dl_ic})
 
     # model
@@ -150,7 +154,7 @@ def main():
 
     # callbacks
     def fitness_function(x: torch.Tensor, model: PINN) -> torch.Tensor:
-        return torch.abs(advection_equation(x, model.nn, beta=BETA))
+        return torch.abs(evaluate_pde(x, model.nn, beta=BETA))
 
     callback_r3 = R3Sampling(
         initial_dataset=ds,

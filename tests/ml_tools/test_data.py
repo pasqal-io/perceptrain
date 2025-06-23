@@ -33,8 +33,7 @@ def test_r3_dataset_getitem(make_mock_r3_dataset: Callable) -> None:
     dataset = make_mock_r3_dataset()
     for _ in range(3):
         idx = random.randint(0, len(dataset) - 1)
-        assert len(dataset[idx]) == 1
-        assert isinstance(dataset[idx][0], Tensor)
+        assert isinstance(dataset[idx], Tensor)
 
 
 def test_r3_dataset_release(make_mock_r3_dataset: Callable) -> None:
