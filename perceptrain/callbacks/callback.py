@@ -876,6 +876,51 @@ class R3Sampling(Callback):
                 Defaults to False.
             called_every (int, optional): Every how many events the callback is called.
                 Defaults to 1.
+
+        Notes:
+            - R3 sampling was developed as a technique for efficient sampling of physics-informed
+            neural networks (PINNs). In this case, the fitness function can be any function of the
+            residuals of the equations
+
+        Examples:
+            Learning an harmonic oscillator with PINNs and R3 sampling. For a well-posed problem, also
+            add the two initial conditions.
+
+            ```python
+                def uniform_1d(n: int):
+                    return torch.rand(size=(n, 1))
+
+                def harmonic_oscillator(x: torch.Tensor, model: torch.nn.Module, m: float = 1.0, kappa: float = 1.0) -> torch.Tensor:
+                    u = model(x)
+                    dudt = torch.autograd.grad(
+                        outputs=u,
+                        inputs=x,
+                        grad_outputs=torch.ones_like(u),
+                        create_graph=True,
+                        retain_graph=True,
+                    )[0]
+                    d2udt2 = torch.autograd.grad(
+                        outputs=dudt,
+                        inputs=x,
+                        grad_outputs=torch.ones_like(dudt),
+                    )[0]
+                    return m * d2udt2 - kappa * u
+
+                def fitness_function(x: torch.Tensor, model: PINN) -> torch.Tensor:
+                    return torch.linalg.vector_norm(harmonic_oscillator(x, model.nn), ord=2)
+
+                dataset = R3Dataset(
+                    proba_dist=uniform_1d,
+                    n_samples=20,
+                    release_threshold=1.0,
+                )
+
+                callback_r3 = R3Sampling(
+                    initial_dataset=dataset,
+                    fitness_function=fitness_function,
+                    called_every=10,
+                )
+            ```
         """
         self.dataset = initial_dataset
         self.fitness_function = fitness_function
