@@ -71,8 +71,8 @@ def make_problem_dataloaders(batch_sizes: dict[str, int]) -> tuple[DataLoader, D
 def print_gradient_weights(trainer: Trainer, config: TrainConfig, writer: Any) -> None:
     print(
         f"Epoch: {trainer.current_epoch};"
-        f" ODE weight: {trainer.loss_fn.gradient_weights['ode']:8.4f},"
-        f" BC weight: {trainer.loss_fn.gradient_weights['bc']:8.4f}"
+        f" ODE weight: {trainer.loss_fn.metric_weights['ode']:8.4f},"
+        f" BC weight: {trainer.loss_fn.metric_weights['bc']:8.4f}"
     )
 
 
@@ -118,7 +118,7 @@ def main():
         batch=next(iter(ddl)),
         unweighted_loss_function=mse_loss,
         optimizer=optimizer,
-        gradient_weights={"ode": INITIAL_GRAD_WEIGHT_ODE, "bc": INITIAL_GRAD_WEIGHT_BC},
+        metric_weights={"ode": INITIAL_GRAD_WEIGHT_ODE, "bc": INITIAL_GRAD_WEIGHT_BC},
         fixed_metric="ode",
     )
 
@@ -138,12 +138,13 @@ def main():
     )
     # config and trainer
     train_config = TrainConfig(
-        max_iter=MAX_ITER, callbacks=[callback_weights, callback_metrics_loss, callback_live_loss]
+        max_iter=MAX_ITER,
+        callbacks=[callback_weights, callback_metrics_loss, callback_live_loss],
     )
-    trainer = Trainer(model, optimizer, train_config, loss_fn=loss)
+    trainer = Trainer(model, optimizer, train_config, loss_fn=loss, train_dataloader=ddl)
 
     # fit
-    trainer.fit(train_dataloader=ddl)
+    trainer.fit()
 
 
 if __name__ == "__main__":
