@@ -61,7 +61,7 @@ def initial_uniform(n: int = 1) -> torch.Tensor:
     return torch.stack((ts, xs), dim=1)
 
 
-def evaluate_pde(x: torch.Tensor, model: torch.nn.Module, beta: float = 1.0) -> torch.Tensor:
+def advection_equation(x: torch.Tensor, model: torch.nn.Module, beta: float = 1.0) -> torch.Tensor:
     u = model(x)
     grad_u = torch.autograd.grad(
         outputs=u,
@@ -75,12 +75,21 @@ def evaluate_pde(x: torch.Tensor, model: torch.nn.Module, beta: float = 1.0) -> 
     return dudt + beta * dudx
 
 
-def evaluate_periodic_bc(x: torch.Tensor, model: torch.nn.Module):
+def evaluate_pde(
+    batch: tuple[torch.Tensor], model: torch.nn.Module, beta: float = 1.0
+) -> torch.Tensor:
+    x = batch[0]
+    return advection_equation(x, model, beta)
+
+
+def evaluate_periodic_bc(batch: tuple[torch.Tensor], model: torch.nn.Module):
+    x = batch[0]
     x_shifted = torch.stack((x[:, 0], (x[:, 1] + 2 * torch.pi) % (4 * torch.pi)), dim=1)
     return model(x) - model(x_shifted)
 
 
-def evaluate_initial(x: torch.Tensor, model: torch.nn.Module):
+def evaluate_initial(batch: tuple[torch.Tensor], model: torch.nn.Module):
+    x = batch[0]
     return model(x) - torch.sin(x[:, 1])
 
 
@@ -98,7 +107,7 @@ def main():
     N_SAMPLES_INTERIOR = 100
     NN_LAYERS = [2, 50, 50, 50, 50, 1]
     SEED = 42
-    THRESHOLD_RESIDUAL = 20.0
+    THRESHOLD_RESIDUAL = 1.0
 
     cli_args = parse_arguments()
 
@@ -110,7 +119,7 @@ def main():
     ds = R3Dataset(
         proba_dist=interior_uniform,
         n_samples=N_SAMPLES_INTERIOR,
-        release_threshold=0.1,
+        release_threshold=THRESHOLD_RESIDUAL,
     )
 
     # dataloader(s)
@@ -122,7 +131,7 @@ def main():
     ddl = DictDataLoader(dataloaders={"pde": dl_pde, "bc": dl_bc, "ic": dl_ic})
 
     # model
-    nn = FFNN(layers=NN_LAYERS, activation_function=torch.nn.Tanh)
+    nn = FFNN(layers=NN_LAYERS, activation_function=torch.nn.Tanh())
     equations = {
         "pde": evaluate_pde,
         "bc": evaluate_periodic_bc,
@@ -141,12 +150,11 @@ def main():
 
     # callbacks
     def fitness_function(x: torch.Tensor, model: PINN) -> torch.Tensor:
-        return torch.abs(evaluate_pde(x, model.nn, beta=BETA))
+        return torch.abs(advection_equation(x, model.nn, beta=BETA))
 
     callback_r3 = R3Sampling(
         initial_dataset=ds,
         fitness_function=fitness_function,
-        threshold=THRESHOLD_RESIDUAL,
         verbose=True,
         called_every=CALLBACK_R3_CALLED_EVERY,
     )
