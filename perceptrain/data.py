@@ -76,13 +76,12 @@ class InfiniteTensorDataset(IterableDataset):
         print(str(xs)) # markdown-exec: hide
         ```
         """
+        if len(set([t.size(0) for t in tensors])) != 1:
+            raise ValueError("Size of first dimension must be the same for all tensors.")
         self.tensors = tensors
-        self.indices = list(range(self.tensors[0].size(0)))
+        self.indices = list(range(tensors[0].size(0)))
 
     def __iter__(self) -> Iterator:
-        if len(set([t.size(0) for t in self.tensors])) != 1:
-            raise ValueError("Size of first dimension must be the same for all tensors.")
-
         # Shuffle the indices for every full pass
         random.shuffle(self.indices)
         while True:
