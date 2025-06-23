@@ -182,7 +182,12 @@ class GenerativeIterableDataset(IterableDataset):
             yield x
 
 
-def to_dataloader(*tensors: Tensor, batch_size: int = 1, infinite: bool = False) -> DataLoader:
+def to_dataloader(
+    *tensors: Tensor,
+    batch_size: int = 1,
+    infinite: bool = False,
+    collate_fn: Callable | None = None,
+) -> DataLoader:
     """Convert torch tensors an (infinite) Dataloader.
 
     Arguments:
@@ -190,6 +195,8 @@ def to_dataloader(*tensors: Tensor, batch_size: int = 1, infinite: bool = False)
         batch_size: batch size of sampled tensors
         infinite: if `True`, the dataloader will keep sampling indefinitely even after the whole
             dataset was sampled once
+        collate_fn: function to collate the sampled tensors. Passed to torch.utils.data.DataLoader.
+            If None, defaults to torch.utils.data.default_collate.
 
     Examples:
 
@@ -205,7 +212,7 @@ def to_dataloader(*tensors: Tensor, batch_size: int = 1, infinite: bool = False)
     ```
     """
     ds = InfiniteTensorDataset(*tensors) if infinite else TensorDataset(*tensors)
-    return DataLoader(ds, batch_size=batch_size)
+    return DataLoader(ds, batch_size=batch_size, collate_fn=collate_fn)
 
 
 @singledispatch
