@@ -668,10 +668,10 @@ class LRSchedulerCosineAnnealing(Callback):
 
 class LRSchedulerReduceOnPlateau(Callback):
     """
-    Reduces learning rate when a metric reaches a plateau.
+    Reduces learning rate when a given metric reaches a plateau.
 
     This callback decreases the learning rate by a factor `gamma` when a given
-    metric monitor does not improve after a given number of epochs by more than
+    metric does not improve after a given number of epochs by more than
     a given threshold, until a minimum learning rate is reached.
 
     Example Usage in `TrainConfig`:
