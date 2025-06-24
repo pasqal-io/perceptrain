@@ -7,7 +7,6 @@ import torch
 from torch.nn import Module
 from torch.optim import Optimizer
 
-from perceptrain.data import data_to_device
 from perceptrain.parameters import set_parameters
 from perceptrain.tensors import promote_to_tensor
 
@@ -47,7 +46,7 @@ def optimize_step(
         # reason the returned loss is always the first one...
         nonlocal metrics, loss
         optimizer.zero_grad()
-        loss, metrics = loss_fn(model, xs)
+        loss, metrics = loss_fn(xs, model)
         loss.backward(retain_graph=True)
         return loss.item()
 
@@ -80,7 +79,7 @@ def update_ng_parameters(
         tuple[float, dict, ng.p.Array]: A tuple containing the computed loss value,
             a dictionary of metrics, and the updated Nevergrad parameters.
     """
-    loss, metrics = loss_fn(model, data)  # type: ignore[misc]
+    loss, metrics = loss_fn(data, model)  # type: ignore[misc]
     optimizer.tell(ng_params, float(loss))
     ng_params = optimizer.ask()  # type: ignore[assignment]
     params = promote_to_tensor(ng_params.value, requires_grad=False)

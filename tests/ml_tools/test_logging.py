@@ -19,11 +19,9 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-from perceptrain import TrainConfig, Trainer
+from perceptrain import QuantumModel, TrainConfig, Trainer
 from perceptrain.callbacks.writer_registry import BaseWriter
 from perceptrain.data import to_dataloader
-from perceptrain import QNN
-from perceptrain import QuantumModel
 from perceptrain.types import ExperimentTrackingTool
 
 
@@ -38,7 +36,7 @@ def setup_model(model: Module) -> tuple[Callable, Optimizer]:
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
 
-    def loss_fn(model: torch.nn.Module, data: torch.Tensor) -> tuple[torch.Tensor, dict]:
+    def loss_fn(data: torch.Tensor, model: torch.nn.Module) -> tuple[torch.Tensor, dict]:
         next(cnt)
         out = model()
         loss = criterion(out, torch.rand(1))
@@ -105,7 +103,7 @@ def test_hyperparams_logging_mlflow(BasicNoInput: torch.nn.Module, tmp_path: Pat
         tracking_tool=ExperimentTrackingTool.MLFLOW,
     )
 
-    trainer = Trainer(model, optimizer, config, loss_fn, None)
+    trainer = Trainer(model, optimizer, config, loss_fn)
     with trainer.enable_grad_opt():
         trainer.fit()
 
@@ -137,7 +135,7 @@ def test_hyperparams_logging_tensorboard(BasicNoInput: torch.nn.Module, tmp_path
         tracking_tool=ExperimentTrackingTool.TENSORBOARD,
     )
 
-    trainer = Trainer(model, optimizer, config, loss_fn, None)
+    trainer = Trainer(model, optimizer, config, loss_fn)
     with trainer.enable_grad_opt():
         trainer.fit()
 
@@ -155,7 +153,7 @@ def test_model_logging_mlflow_BasicNoInputQM(BasicNoInput: torch.nn.Module, tmp_
         tracking_tool=ExperimentTrackingTool.MLFLOW,
     )
 
-    trainer = Trainer(model, optimizer, config, loss_fn, None)
+    trainer = Trainer(model, optimizer, config, loss_fn)
     with trainer.enable_grad_opt():
         trainer.fit()
 
@@ -181,7 +179,7 @@ def test_model_logging_tensorboard(
         tracking_tool=ExperimentTrackingTool.TENSORBOARD,
     )
 
-    trainer = Trainer(model, optimizer, config, loss_fn, None)
+    trainer = Trainer(model, optimizer, config, loss_fn)
     with trainer.enable_grad_opt():
         trainer.fit()
 
@@ -190,7 +188,6 @@ def test_model_logging_tensorboard(
 
 
 def test_plotting_mlflow(BasicNoInput: torch.nn.Module, tmp_path: Path) -> None:
-    data = dataloader()
     model = BasicNoInput
 
     loss_fn, optimizer = setup_model(model)
@@ -218,7 +215,7 @@ def test_plotting_mlflow(BasicNoInput: torch.nn.Module, tmp_path: Path) -> None:
         plotting_functions=(plot_error,),
     )
 
-    trainer = Trainer(model, optimizer, config, loss_fn, data)
+    trainer = Trainer(model, optimizer, config, loss_fn)
     with trainer.enable_grad_opt():
         trainer.fit()
 
@@ -233,7 +230,6 @@ def test_plotting_mlflow(BasicNoInput: torch.nn.Module, tmp_path: Path) -> None:
 
 
 def test_plotting_tensorboard(BasicNoInput: torch.nn.Module, tmp_path: Path) -> None:
-    data = dataloader()
     model = BasicNoInput
 
     loss_fn, optimizer = setup_model(model)
@@ -258,6 +254,6 @@ def test_plotting_tensorboard(BasicNoInput: torch.nn.Module, tmp_path: Path) -> 
         plotting_functions=(plot_error,),
     )
 
-    trainer = Trainer(model, optimizer, config, loss_fn, data)
+    trainer = Trainer(model, optimizer, config, loss_fn)
     with trainer.enable_grad_opt():
         trainer.fit()

@@ -79,3 +79,9 @@ events.out.tfevents.*
 # mlflow
 mlruns/
 mlartifacts/
+
+# pyright
+pyrightconfig.json
+
+# zed
+.zed

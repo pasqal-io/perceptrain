@@ -10,7 +10,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from perceptrain import QNN, DictDataLoader, TrainConfig, Trainer, to_dataloader
+from perceptrain import DictDataLoader, TrainConfig, Trainer, to_dataloader
 
 torch.manual_seed(42)
 np.random.seed(42)
@@ -80,7 +80,7 @@ def test_train_dataloader_default(tmp_path: Path, Basic: torch.nn.Module) -> Non
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
 
-    def loss_fn(model: torch.nn.Module, data: torch.Tensor) -> tuple[torch.Tensor, dict]:
+    def loss_fn(data: torch.Tensor, model: torch.nn.Module) -> tuple[torch.Tensor, dict]:
         next(cnt)
         x, y = data
         out = model(x)
@@ -108,7 +108,7 @@ def test_train_dataloader_no_data(tmp_path: Path, BasicNoInput: torch.nn.Module)
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1.0)
 
-    def loss_fn(model: torch.nn.Module, xs: Any = None) -> tuple[torch.Tensor, dict]:
+    def loss_fn(xs: Any, model: torch.nn.Module) -> tuple[torch.Tensor, dict]:
         next(cnt)
         out = model()
         loss = criterion(out, torch.tensor([0.0]))
@@ -141,7 +141,7 @@ def test_train_val(tmp_path: Path, Basic: torch.nn.Module) -> None:
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
-    def loss_fn(model: torch.nn.Module, data: torch.Tensor) -> tuple[torch.Tensor, dict]:
+    def loss_fn(data: torch.Tensor, model: torch.nn.Module) -> tuple[torch.Tensor, dict]:
         next(cnt)
         x1, y1 = data
         l1 = criterion(model(x1), y1)
@@ -178,7 +178,7 @@ def test_train_tensor_tuple(Basic: torch.nn.Module) -> None:
         criterion = torch.nn.MSELoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
 
-        def loss_fn(model: torch.nn.Module, data: torch.Tensor) -> tuple[torch.Tensor, dict]:
+        def loss_fn(data: torch.Tensor, model: torch.nn.Module) -> tuple[torch.Tensor, dict]:
             next(cnt)
             x, y = data
             out = model(x)
@@ -213,7 +213,7 @@ def test_train_dataloader_val_check_and_non_dict_dataloader(
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
-    def loss_fn(model: torch.nn.Module, data: torch.Tensor) -> tuple[torch.Tensor, dict]:
+    def loss_fn(data: torch.Tensor, model: torch.nn.Module) -> tuple[torch.Tensor, dict]:
         next(cnt)
         x1, y1 = data
         loss = criterion(model(x1), y1)
@@ -243,7 +243,7 @@ def test_train_dataloader_val_check_incorrect_keys(tmp_path: Path, Basic: torch.
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
-    def loss_fn(model: torch.nn.Module, data: torch.Tensor) -> tuple[torch.Tensor, dict]:
+    def loss_fn(data: torch.Tensor, model: torch.nn.Module) -> tuple[torch.Tensor, dict]:
         next(cnt)
         x1, y1 = data
         loss = criterion(model(x1), y1)
@@ -275,7 +275,7 @@ def test_train_val_checkpoint_best_only(tmp_path: Path, Basic: torch.nn.Module) 
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
-    def loss_fn(model: torch.nn.Module, data: torch.Tensor) -> tuple[torch.Tensor, dict]:
+    def loss_fn(data: torch.Tensor, model: torch.nn.Module) -> tuple[torch.Tensor, dict]:
         next(cnt)
         x1, y1 = data
         loss = criterion(model(x1), y1)
@@ -312,7 +312,7 @@ def test_dict_dataloader_with_trainer(tmp_path: Path, Basic: torch.nn.Module) ->
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
-    def loss_fn(model: torch.nn.Module, data: dict) -> tuple[torch.Tensor, dict]:
+    def loss_fn(data: dict, model: torch.nn.Module) -> tuple[torch.Tensor, dict]:
         losses = []
         for key, (x, y) in data.items():
             out = model(x)

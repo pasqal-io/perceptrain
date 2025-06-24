@@ -21,13 +21,13 @@ nav:
       - Tracking: tutorials/training/tracking.md
       - Optimization Type: tutorials/training/gradient.md
       - Training Stages Hooks: tutorials/training/hooks.md
-      - Exmaples: tutorials/training/examples.md
+      - Examples: tutorials/training/examples.md
 
 
     - Data & Configuration:
       - tutorials/dataconfig/intro.md
       - TrainConfig: tutorials/dataconfig/config.md
-      - Dataloader: tutorials/dataconfig/data.md
+      - Data: tutorials/dataconfig/data.md
       - Experiment Tracking: tutorials/dataconfig/tracking.md
 
     - Callbacks:
@@ -52,6 +52,8 @@ nav:
   - API:
     - Trainer: api/trainer.md
     - Configurations: api/config.md
+    - Models: api/models.md
+    - Loss functions: api/loss.md
     - Accelerator: api/accelerator.md
     - Callbacks: api/callback.md
     - Information Content: api/information.md

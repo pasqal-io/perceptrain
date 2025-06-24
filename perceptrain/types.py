@@ -5,10 +5,10 @@ from enum import Enum
 from typing import Callable, Iterable, Tuple, Union
 
 import numpy as np
+import torch.nn as nn
 from matplotlib.figure import Figure
 from numpy.typing import ArrayLike
 from torch import Tensor, pi
-from torch.nn import Module
 
 TNumber = Union[int, float, complex, np.int64, np.float64]
 """Union of python and numpy numeric types."""
@@ -24,12 +24,14 @@ TArray = Union[Iterable, Tensor, np.ndarray]
 TGenerator = Union[Tensor]
 """Union of torch tensors and numpy arrays."""
 
+TData = Union[Tensor, dict[str, Tensor]]
+TBatch = tuple[TData, ...]
+
 
 PI = pi
 
 # Modules to be automatically added to the preceptrain namespace
 __all__ = [
-    "Model",
     "QuantumModel",
     "QNN",
     "ResultType",
@@ -43,9 +45,8 @@ __all__ = [
 ]  # type: ignore
 
 # Basic models for trainer
-Model = Module
-QuantumModel = Module
-QNN = Module
+QuantumModel = nn.Module
+QNN = nn.Module
 
 
 class StrEnum(str, Enum):
@@ -148,4 +149,5 @@ class ExecutionType(StrEnum):
     """Default distribution execution."""
 
 
-LoggablePlotFunction = Callable[[Module, int], tuple[str, Figure]]
+LoggablePlotFunction = Callable[[nn.Module, int], tuple[str, Figure]]
+LossFunction = Callable[[TBatch, nn.Module], tuple[Tensor, dict[str, Tensor]]]

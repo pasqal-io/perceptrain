@@ -18,11 +18,11 @@ from perceptrain.callbacks import (
     LRSchedulerCosineAnnealing,
     LRSchedulerCyclic,
     LRSchedulerStepDecay,
-    PlotMetrics,
     PrintMetrics,
     SaveBestCheckpoint,
     SaveCheckpoint,
     WriteMetrics,
+    WritePlots,
 )
 from perceptrain.callbacks.saveload import write_checkpoint
 from perceptrain.data import OptimizeResult, to_dataloader
@@ -107,7 +107,7 @@ def test_plot_metrics(trainer: Trainer) -> None:
     trainer.config.plotting_functions = (lambda model, iteration: ("plot_name", None),)
     writer = trainer.callback_manager.writer = Mock()
     stage = trainer.training_stage
-    callback = PlotMetrics(stage, called_every=1)
+    callback = WritePlots(stage, called_every=1)
     callback(stage, trainer, trainer.config, writer)
 
     writer.plot.assert_called_once_with(
