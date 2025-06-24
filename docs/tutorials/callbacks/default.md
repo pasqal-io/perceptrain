@@ -188,15 +188,15 @@ from perceptrain import TrainConfig
 from perceptrain.callbacks import LRSchedulerReduceOnPlateau
 
 lr_plateau = LRSchedulerReduceOnPlateau(
-        on="train_epoch_end",
-        called_every=1,
-        monitor="train_loss",
-        patience=20,
-        mode="min",
-        gamma=0.5,
-        threshold=1e-4,
-        min_lr=1e-5,
-    )
+    on="train_epoch_end",
+    called_every=1,
+    monitor="train_loss",
+    patience=20,
+    mode="min",
+    gamma=0.5,
+    threshold=1e-4,
+    min_lr=1e-5,
+)
 
 config = TrainConfig(
     max_iter=10000,
