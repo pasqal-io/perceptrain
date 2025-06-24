@@ -101,6 +101,58 @@ class PINN(nn.Module):
             equations (dict[str, Callable[[Tensor, nn.Module], Tensor]]): Dictionary of equations.
                 These are assumed in the form LHS(x) = 0, so each term of `equations` should
                 provide the left-hand side.
+
+        Notes:
+            Example of equations: heat equation with a Gaussian initial condition.
+            ```python
+            import torch
+
+            alpha = 1.0
+
+            def heat_eqn(x: torch.Tensor, model: torch.nn.Module) -> torch.Tensor:
+                grad_u = torch.autograd.grad(
+                    outputs=model(x),
+                    inputs=x,
+                    grad_outputs=torch.ones_like(u),
+                    create_graph=True,
+                    retain_graph=True,
+                )[0]
+                dudt = grad_u[:, 0]
+                dudx = grad_u[:, 1]
+                grad2_u = torch.autograd.grad(
+                    outputs=dudx,
+                    inputs=x,
+                    grad_outputs=torch.ones_like(dudx),
+                    create_graph=True,
+                    retain_graph=True,
+                )[0]
+                d2udx2 = grad2_u[:, 1]
+
+                return dudt - beta * d2udx2
+
+            def initial_condition(x: torch.Tensor, model: torch.nn.Module):
+                def gaussian(z):
+                    return torch.exp(-z**2)
+
+                return model(x) - gaussian(x[:, 1])
+
+            def boundary_condition(x: torch.Tensor, model: torch.nn.Module):
+                grad_u = torch.autograd.grad(
+                    outputs=model(x),
+                    inputs=x,
+                    grad_outputs=torch.ones_like(model(x)),
+                    create_graph=True,
+                    retain_graph=True,
+                )[0]
+                return dudx[:, 1] - torch.zeros_like(x[:, 1])
+
+            equations = {
+                "pde": heat_eqn,
+                "initial_condition": initial_condition,
+                "boundary_condition_left": boundary_condition,
+                "boundary_condition_right": boundary_condition,
+            }
+            ```
         """
         super().__init__()
         self.nn = nn
