@@ -50,6 +50,25 @@ config = TrainConfig(
 )
 ```
 
+### 3. `LivePlotMetrics`
+
+Plots dynamically on screen the metrics followed during training. The `arrange` parameter allows for custom arrangement of subplots.
+
+```python exec="on" source="material-block" html="1"
+from perceptrain import TrainConfig
+from perceptrain.callbacks import LivePlotMetrics
+
+live_plot_callback = LivePlotMetrics(on="train_epoch_end",
+    called_every=100,
+    arrange={"training": ["train_loss", "train_metric_first"], "validation": ["val_loss", "val_metric_second"]},
+)
+
+config = TrainConfig(
+    max_iter=5000,
+    callbacks=[live_plot_callback]
+)
+```
+
 ### 4. `LogHyperparameters`
 
 Logs hyperparameters to keep track of training settings.

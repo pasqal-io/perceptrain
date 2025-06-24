@@ -24,7 +24,7 @@ The `Trainer` class in `perceptrain` provides built-in support for executing cal
 Below is a list of the default callbacks and their assigned hooks:
 
 - **`train_start`**: `WritePlots`, `SaveCheckpoint`, `WriteMetrics`
-- **`train_epoch_end`**: `SaveCheckpoint`, `PrintMetrics`, `WritePlots`, `WriteMetrics`
+- **`train_epoch_end`**: `SaveCheckpoint`, `PrintMetrics`, `WritePlots`, `LivePlotMetrics`, `WriteMetrics`
 - **`val_epoch_end`**: `SaveBestCheckpoint`, `WriteMetrics`
 - **`train_end`**: `LogHyperparameters`, `LogModelTracker`, `WriteMetrics`, `SaveCheckpoint`, `WritePlots`
 
