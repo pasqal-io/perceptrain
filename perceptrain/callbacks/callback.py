@@ -678,8 +678,8 @@ class LRSchedulerReduceOnPlateau(Callback):
     To use `LRSchedulerReduceOnPlateau`, include it in the `callbacks` list
     when setting up your `TrainConfig`:
     ```python exec="on" source="material-block" result="json"
-    from qadence.ml_tools import TrainConfig
-    from qadence.ml_tools.callbacks import LRSchedulerReduceOnPlateau
+    from perceptrain import TrainConfig
+    from perceptrain.callbacks import LRSchedulerReduceOnPlateau
 
     # Create an instance of the LRSchedulerReduceOnPlateau callback
     lr_plateau = LRSchedulerReduceOnPlateau(
