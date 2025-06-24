@@ -181,7 +181,7 @@ config = TrainConfig(
 
 ### 11. `LRSchedulerReduceOnPlateau`
 
-Reduces the learning rate when the training loss reaches a plateau (does not improve after a given number of epochs)
+Reduces the learning rate when a given metric does not improve for a number of epochs.
 
 ```python exec="on" source="material-block" html="1"
 from perceptrain import TrainConfig
