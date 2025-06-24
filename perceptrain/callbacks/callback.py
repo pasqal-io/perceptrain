@@ -668,11 +668,11 @@ class LRSchedulerCosineAnnealing(Callback):
 
 class LRSchedulerReduceOnPlateau(Callback):
     """
-    Reduces learning rate when the training loss reaches a plateau.
+    Reduces learning rate when a metric reaches a plateau.
 
-    This callback decreases the learning rate by a factor `gamma` when the
-    training loss does not improve after a given number of epochs (patience)
-    by more than a given `threshold`, until a minimum learning rate is reached.
+    This callback decreases the learning rate by a factor `gamma` when a given
+    metric monitor does not improve after a given number of epochs by more than
+    a given threshold, until a minimum learning rate is reached.
 
     Example Usage in `TrainConfig`:
     To use `LRSchedulerReduceOnPlateau`, include it in the `callbacks` list
@@ -701,9 +701,11 @@ class LRSchedulerReduceOnPlateau(Callback):
 
     def __init__(
         self,
-        on: str = "train_epoch_end",
+        on: str,
         called_every: int = 1,
+        monitor: str = "train_loss",
         patience: int = 20,
+        mode: str = "min",
         gamma: float = 0.5,
         threshold: float = 1e-4,
         min_lr: float = 1e-6,
@@ -712,29 +714,38 @@ class LRSchedulerReduceOnPlateau(Callback):
         """Initializes the LRSchedulerReduceOnPlateau callback.
 
         Args:
-            on (str): The event to trigger the callback. Default is `train_epoch_end`
-            called_every (int): Frequency of callback calls in terms of iterations.
+            on (str): The event to trigger the callback. Default is `train_epoch_end`.
+            called_every (int, optional): Frequency of callback calls in terms of iterations.
                 Default is 1.
+            monitor (str, optional): The metric to monitor (e.g., "val_loss" or "train_loss").
+                All metrics returned by optimize step are available to monitor.
+                Please add "val_" and "train_" strings at the start of the metric name.
+                Default is "train_loss".
+            mode (str, optional): Whether to minimize ("min") or maximize ("max") the metric.
+                Default is "min".
             patience (int, optional): Number of allowed iterations with no loss
                 improvement before reducing the learning rate. Default is 20.
-            gamma (float): The decay factor applied to the learning rate. A value
+            gamma (float, optional): The decay factor applied to the learning rate. A value
                 < 1 reduces the learning rate over time. Default is 0.5.
-            threshold (float): Amount by which the loss must decrease to count as an
+            threshold (float, optional): Amount by which the loss must improve to count as an
                 improvement. Default is 1e-4.
-            min_lr (float): Minimum learning rate past which no further reducing
+            min_lr (float, optional): Minimum learning rate past which no further reducing
                 is applied.  Default is 1e-5.
-            verbose (bool): If True, the logger prints when the learning rate
+            verbose (bool, optional): If True, the logger prints when the learning rate
                 decreases or reaches the minimum (INFO level)
         """
         super().__init__(on=on, called_every=called_every)
+        self.monitor = monitor
+        self.mode = mode
         self.patience = patience
         self.gamma = gamma
-        self.best_value = float("inf")
         self.threshold = threshold
         self.min_lr = min_lr
+        self.verbose = verbose
+
+        self.best_value = float("inf")
         self.counter = 0
         self.reached_minimum = False
-        self.verbose = verbose
 
     def run_callback(self, trainer: Any, config: TrainConfig, writer: BaseWriter) -> None:
         """
@@ -746,8 +757,15 @@ class LRSchedulerReduceOnPlateau(Callback):
             writer (BaseWriter): The writer object for logging.
         """
         if not self.reached_minimum:
-            current_value = trainer.opt_result.metrics.get("train_loss")
-            if current_value + self.threshold < self.best_value:
+            current_value = trainer.opt_result.metrics.get(self.monitor)
+            if current_value is None:
+                raise ValueError(
+                    f"Metric '{self.monitor}' is not available in the trainer's metrics."
+                )
+
+            if (self.mode == "min" and current_value + self.threshold < self.best_value) or (
+                self.mode == "max" and current_value - self.threshold > self.best_value
+            ):
                 self.best_value = current_value
                 self.counter = 0
             else:
