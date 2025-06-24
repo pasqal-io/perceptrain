@@ -115,7 +115,7 @@ class GradWeightedLoss:
     ):
         """Loss function with gradient weighting for PINN training.
 
-        Implements the learning rate annealing algorithm in https://arxiv.org/abs/2001.04536.
+        Implements the learning rate annealing algorithm in [this article](https://arxiv.org/abs/2001.04536).
 
         Args:
             batch (dict[str, Tensor]): Batch of data.
