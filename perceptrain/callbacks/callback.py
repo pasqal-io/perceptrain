@@ -346,7 +346,7 @@ class LivePlotMetrics(Callback):
     """
 
     def __init__(
-        self, on: str, called_every: int, groups: dict[str, list[str]] = {"loss": ["train_loss"]}
+        self, on: str, called_every: int, arrange: dict[str, list[str]] = {"loss": ["train_loss"]}
     ):
         """Initializes the callback.
 
@@ -360,7 +360,7 @@ class LivePlotMetrics(Callback):
         self.output_mode = llp.get_mode()
         self.liveloss = llp.PlotLosses(
             outputs=[MatplotlibPlot(after_plots=self._after_plots)],
-            groups=groups,
+            groups=arrange,
         )
 
     def _after_plots(self, fig: plt.Figure) -> None:
