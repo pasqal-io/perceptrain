@@ -683,6 +683,10 @@ class LRSchedulerReduceOnPlateau(Callback):
 
     # Create an instance of the LRSchedulerReduceOnPlateau callback
     lr_plateau = LRSchedulerReduceOnPlateau(
+                    on="train_epoch_end",
+                    called_every=1,
+                    monitor="train_loss",
+                    model="min",
                     patience=20,
                     gamma=0.5,
                     threshold=1e-4,
