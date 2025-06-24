@@ -7,5 +7,3 @@
 ### ::: perceptrain.optimize_step
 
 ### ::: perceptrain.data
-
-### ::: perceptrain.models
