@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field
 from logging import getLogger
 from pathlib import Path
 from typing import Callable
 
-from perceptrain.types import ExperimentTrackingTool, LoggablePlotFunction
 from torch import dtype
+
+from perceptrain.types import ExperimentTrackingTool, LoggablePlotFunction
 
 logger = getLogger(__file__)
 
@@ -64,6 +65,16 @@ class TrainConfig:
     """Frequency (in epochs) for generating and saving figures during training.
 
     Set to 0 to disable plotting.
+    """
+
+    live_plot_every: int = 0
+    """Frequency for live plotting all the metrics in a single dynamic subplot.
+
+    Set to 0 to disable.
+
+    __NOTE__: for more personalized behaviour, such as showing only a subset of the
+        metrics or arranging over different subplots, leave this parameter to 0,
+        define a `LivePlotMetrics` callback and pass it to `callbacks`.
     """
 
     callbacks: list = field(default_factory=lambda: list())

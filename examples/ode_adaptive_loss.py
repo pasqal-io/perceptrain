@@ -17,7 +17,7 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 
 from perceptrain import TrainConfig, Trainer
-from perceptrain.callbacks import Callback, LivePlotMetrics
+from perceptrain.callbacks import Callback
 from perceptrain.data import DictDataLoader, to_dataloader
 from perceptrain.loss import GradWeightedLoss, mse_loss
 from perceptrain.models import FFNN, PINN
@@ -125,18 +125,15 @@ def main():
         callback=print_gradient_weights,
         called_every=CALLBACK_WEIGHTS_CALLED_EVERY,
     )
-    callback_live_loss = LivePlotMetrics(
-        on="train_epoch_end",
-        called_every=CALLBACK_LOSS_CALLED_EVERY,
-        arrange={"training": ["train_loss", "train_ode", "train_bc"]},
-    )
 
-    custom_callbacks = [callback_weights, callback_live_loss]
+    custom_callbacks = [callback_weights]
+
     # config and trainer
     train_config = TrainConfig(
         max_iter=MAX_ITER,
         callbacks=custom_callbacks,
         print_every=CALLBACK_LOSS_CALLED_EVERY,
+        live_plot_every=CALLBACK_LOSS_CALLED_EVERY,
     )
     trainer = Trainer(model, optimizer, train_config, loss_fn=loss)
 

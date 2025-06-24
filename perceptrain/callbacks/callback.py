@@ -345,23 +345,23 @@ class LivePlotMetrics(Callback):
     at every call and plot them via matplotlib.
     """
 
-    def __init__(
-        self, on: str, called_every: int, arrange: dict[str, list[str]] = {"loss": ["train_loss"]}
-    ):
+    def __init__(self, on: str, called_every: int, arrange: dict[str, list[str]] | None = None):
         """Initializes the callback.
 
         Args:
             on (str): The event to trigger the callback.
             called_every (int): Frequency of callback calls in terms of iterations.
-            groups (dict[str, dict[str, list[str]]): How metrics are grouped for the subplots. Each entry
+            arrange (dict[str, dict[str, list[str]]): How metrics are arranged for the subplots. Each entry
                 is a different group, which will correspond to a different subplot.
+                If None, all metrics will be plotted in a single subplot.
+                Defaults to None.
         """
         super().__init__(on=on, called_every=called_every)
+        self.arrange = arrange
+
         self.output_mode = llp.get_mode()
-        self.liveloss = llp.PlotLosses(
-            outputs=[MatplotlibPlot(after_plots=self._after_plots)],
-            groups=arrange,
-        )
+
+        self._first_call = True
 
     def _after_plots(self, fig: plt.Figure) -> None:
         fig.tight_layout()
@@ -373,6 +373,16 @@ class LivePlotMetrics(Callback):
             plt.show()
 
     def run_callback(self, trainer: Any, config: TrainConfig, writer: BaseWriter) -> Any:
+        if self._first_call:
+            if self.arrange is None:
+                self.arrange = {"Training": [key for key in trainer.opt_result.metrics.keys()]}
+
+            self.liveloss = llp.PlotLosses(
+                outputs=[MatplotlibPlot(after_plots=self._after_plots)],
+                groups=self.arrange,
+            )
+            self._first_call = False
+
         if trainer.accelerator.rank == 0:
             opt_result = trainer.opt_result
             self.liveloss.update(opt_result.metrics, current_step=trainer.current_epoch)

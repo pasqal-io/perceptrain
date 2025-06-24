@@ -6,6 +6,7 @@ from typing import Any
 
 from perceptrain.callbacks.callback import (
     Callback,
+    LivePlotMetrics,
     LoadCheckpoint,
     LogHyperparameters,
     LogModelTracker,
@@ -42,6 +43,7 @@ class CallbacksManager:
         "PrintMetrics": PrintMetrics,
         "WriteMetrics": WriteMetrics,
         "WritePlots": WritePlots,
+        "LivePlotMetrics": LivePlotMetrics,
         "SaveCheckpoint": SaveCheckpoint,
         "LoadCheckpoint": LoadCheckpoint,
         "LogModelTracker": LogModelTracker,
@@ -97,6 +99,8 @@ class CallbacksManager:
         # Plotting
         if self.config.plot_every:
             self.add_callback("WritePlots", "train_epoch_end", self.config.plot_every)
+        if self.config.live_plot_every:
+            self.add_callback("LivePlotMetrics", "train_epoch_end", self.config.live_plot_every)
 
         # Writing
         if self.config.write_every:
