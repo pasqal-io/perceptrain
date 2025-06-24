@@ -666,6 +666,112 @@ class LRSchedulerCosineAnnealing(Callback):
             param_group["lr"] = new_lr
 
 
+class LRSchedulerReduceOnPlateau(Callback):
+    """
+    Reduces learning rate when the training loss reaches a plateau.
+
+    This callback decreases the learning rate by a factor `gamma` when the
+    training loss does not improve after a given number of epochs (patience)
+    by more than a given `threshold`, until a minimum learning rate is reached.
+
+    Example Usage in `TrainConfig`:
+    To use `LRSchedulerReduceOnPlateau`, include it in the `callbacks` list
+    when setting up your `TrainConfig`:
+    ```python exec="on" source="material-block" result="json"
+    from qadence.ml_tools import TrainConfig
+    from qadence.ml_tools.callbacks import LRSchedulerReduceOnPlateau
+
+    # Create an instance of the LRSchedulerReduceOnPlateau callback
+    lr_plateau = LRSchedulerReduceOnPlateau(
+                    patience=20,
+                    gamma=0.5,
+                    threshold=1e-4,
+                    min_lr=1e-5,
+                )
+
+    config = TrainConfig(
+        max_iter=10000,
+        # Print metrics every 1000 training epochs
+        print_every=1000,
+        # Add the custom callback
+        callbacks=[lr_plateau]
+    )
+    ```
+    """
+
+    def __init__(
+        self,
+        on: str = "train_epoch_end",
+        called_every: int = 1,
+        patience: int = 20,
+        gamma: float = 0.5,
+        threshold: float = 1e-4,
+        min_lr: float = 1e-6,
+        verbose: bool = True,
+    ):
+        """Initializes the LRSchedulerReduceOnPlateau callback.
+
+        Args:
+            on (str): The event to trigger the callback. Default is `train_epoch_end`
+            called_every (int): Frequency of callback calls in terms of iterations.
+                Default is 1.
+            patience (int, optional): Number of allowed iterations with no loss
+                improvement before reducing the learning rate. Default is 20.
+            gamma (float): The decay factor applied to the learning rate. A value
+                < 1 reduces the learning rate over time. Default is 0.5.
+            threshold (float): Amount by which the loss must decrease to count as an
+                improvement. Default is 1e-4.
+            min_lr (float): Minimum learning rate past which no further reducing
+                is applied.  Default is 1e-5.
+            verbose (bool): If True, the logger prints when the learning rate
+                decreases or reaches the minimum (INFO level)
+        """
+        super().__init__(on=on, called_every=called_every)
+        self.patience = patience
+        self.gamma = gamma
+        self.best_value = float("inf")
+        self.threshold = threshold
+        self.min_lr = min_lr
+        self.counter = 0
+        self.reached_minimum = False
+        self.verbose = verbose
+
+    def run_callback(self, trainer: Any, config: TrainConfig, writer: BaseWriter) -> None:
+        """
+        Reduces the learning rate when the loss reaches a plateau.
+
+        Args:
+            trainer (Any): The training object.
+            config (TrainConfig): The configuration object.
+            writer (BaseWriter): The writer object for logging.
+        """
+        if not self.reached_minimum:
+            current_value = trainer.opt_result.metrics.get("train_loss")
+            if current_value + self.threshold < self.best_value:
+                self.best_value = current_value
+                self.counter = 0
+            else:
+                self.counter += 1
+
+            if self.counter >= self.patience:
+                for param_group in trainer.optimizer.param_groups:
+                    new_lr = param_group["lr"] * self.gamma
+                    if new_lr < self.min_lr:
+                        param_group["lr"] = self.min_lr
+                        self.reached_minimum = True
+                        if self.verbose:
+                            logger.info(
+                                f"Learning rate has reached the minimum learning rate {self.min_lr}"
+                            )
+                    else:
+                        param_group["lr"] = new_lr
+                        if self.verbose:
+                            logger.info(
+                                f"Loss has reached a plateau, reducing learning rate to {new_lr}"
+                            )
+                self.counter = 0
+
+
 class EarlyStopping(Callback):
     """
     Stops training when a monitored metric has not improved for a specified number of epochs.

@@ -179,6 +179,24 @@ config = TrainConfig(
 )
 ```
 
+### 11. `LRSchedulerReduceOnPlateau`
+
+Reduces the learning rate when the training loss reaches a plateau (does not improve after a given number of epochs)
+
+```python exec="on" source="material-block" html="1"
+from perceptrain import TrainConfig
+from perceptrain.callbacks import LRSchedulerReduceOnPlateau
+
+lr_plateau = LRSchedulerReduceOnPlateau(
+        on=stage, called_every=1, patience=20, gamma=0.5, threshold=1e-4, min_lr=1e-5
+    )
+
+config = TrainConfig(
+    max_iter=10000,
+    callbacks=[lr_plateau]
+)
+```
+
 ### 12. `EarlyStopping`
 
 Stops training when a monitored metric has not improved for a specified number of epochs.

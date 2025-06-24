@@ -18,6 +18,7 @@ from perceptrain.callbacks import (
     LRSchedulerCosineAnnealing,
     LRSchedulerCyclic,
     LRSchedulerStepDecay,
+    LRSchedulerReduceOnPlateau,
     PlotMetrics,
     PrintMetrics,
     SaveBestCheckpoint,
@@ -195,6 +196,40 @@ def test_lr_scheduler_cosine_annealing(trainer: Trainer) -> None:
     expected_lr = min_lr + (initial_lr - min_lr) * (1 + math.cos(math.pi * 0.5)) / 2
     new_lr = trainer.optimizer.param_groups[0]["lr"]  # type: ignore
     assert math.isclose(new_lr, expected_lr, rel_tol=1e-6)
+
+
+def test_lr_scheduler_reduce_on_plateau(trainer: Trainer) -> None:
+    writer = trainer.callback_manager.writer = Mock()
+    stage = trainer.training_stage
+
+    initial_lr = 0.1
+    trainer.optimizer.param_groups[0]["lr"] = initial_lr  # type: ignore
+    gamma = 0.1
+    patience = 2  # Loss should decrease every 2 epochs with increasing loss
+    min_lr = initial_lr * gamma**2  # Should reach the minimum in 4 epochs w/ increasing loss
+
+    callback = LRSchedulerReduceOnPlateau(
+        on=stage, called_every=1, patience=patience, gamma=gamma, threshold=1e-4, min_lr=min_lr
+    )
+
+    # Set initial loss
+    trainer.opt_result.metrics = {"train_loss": 0.5}
+    callback(stage, trainer, trainer.config, writer)
+
+    # Simulate increasing loss values and check lr decreases
+    for i in range(patience):
+        callback(stage, trainer, trainer.config, writer)
+        trainer.opt_result.metrics["train_loss"] += 0.1
+    new_lr = trainer.optimizer.param_groups[0]["lr"]  # type: ignore
+    expected_lr = initial_lr * gamma
+    assert math.isclose(expected_lr, new_lr, rel_tol=1e-6)
+
+    # Check that lr does not decrease past min_lr
+    for i in range(2 * patience):
+        callback(stage, trainer, trainer.config, writer)
+        trainer.opt_result.metrics["train_loss"] += 0.1
+    new_lr = trainer.optimizer.param_groups[0]["lr"]  # type: ignore
+    assert math.isclose(min_lr, new_lr, rel_tol=1e-6)
 
 
 def test_early_stopping(trainer: Trainer) -> None:
