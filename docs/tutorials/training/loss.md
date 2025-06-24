@@ -2,8 +2,8 @@
 
 Perceptrain works with loss functions having the following interface:
 
-```python exec="on" source="material-block"
-def loss_fn(batch: TBatch, model: torch.nn.Module) -> tuple[torch.Tensor, dict]:
+```python
+def loss_fn(batch: Any, model: torch.nn.Module) -> tuple[torch.Tensor, dict]:
     ...
 ```
 
@@ -30,7 +30,7 @@ from itertools import count
 cnt = count()
 criterion = torch.nn.MSELoss()
 
-def loss_fn_custom(batch: TBatch, model: torch.nn.Module) -> tuple[torch.Tensor, dict]:
+def loss_fn_custom(batch: tuple[torch.Tensor, torch.Tensor] , model: torch.nn.Module) -> tuple[torch.Tensor, dict]:
     next(cnt)
     x, y = batch
     out = model(x)

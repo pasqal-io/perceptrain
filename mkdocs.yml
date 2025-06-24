@@ -21,13 +21,13 @@ nav:
       - Tracking: tutorials/training/tracking.md
       - Optimization Type: tutorials/training/gradient.md
       - Training Stages Hooks: tutorials/training/hooks.md
-      - Exmaples: tutorials/training/examples.md
+      - Examples: tutorials/training/examples.md
 
 
     - Data & Configuration:
       - tutorials/dataconfig/intro.md
       - TrainConfig: tutorials/dataconfig/config.md
-      - Dataloader: tutorials/dataconfig/data.md
+      - Data: tutorials/dataconfig/data.md
       - Experiment Tracking: tutorials/dataconfig/tracking.md
 
     - Callbacks:
