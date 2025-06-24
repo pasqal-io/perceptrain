@@ -82,3 +82,6 @@ mlartifacts/
 
 # pyright
 pyrightconfig.json
+
+# zed
+.zed
