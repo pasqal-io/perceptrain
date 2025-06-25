@@ -3,14 +3,15 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass, field
 from functools import singledispatch
-from typing import Any, Iterator
+from typing import Any, Callable, Iterator
 
+import torch
 from nevergrad.optimization.base import Optimizer as NGOptimizer
 from torch import Tensor
 from torch import device as torch_device
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, IterableDataset, TensorDataset
+from torch.utils.data import DataLoader, Dataset, IterableDataset, TensorDataset
 
 
 @dataclass
@@ -75,13 +76,12 @@ class InfiniteTensorDataset(IterableDataset):
         print(str(xs)) # markdown-exec: hide
         ```
         """
+        if len(set([t.size(0) for t in tensors])) != 1:
+            raise ValueError("Size of first dimension must be the same for all tensors.")
         self.tensors = tensors
-        self.indices = list(range(self.tensors[0].size(0)))
+        self.indices = list(range(tensors[0].size(0)))
 
     def __iter__(self) -> Iterator:
-        if len(set([t.size(0) for t in self.tensors])) != 1:
-            raise ValueError("Size of first dimension must be the same for all tensors.")
-
         # Shuffle the indices for every full pass
         random.shuffle(self.indices)
         while True:
@@ -89,7 +89,105 @@ class InfiniteTensorDataset(IterableDataset):
                 yield tuple(t[idx] for t in self.tensors)
 
 
-def to_dataloader(*tensors: Tensor, batch_size: int = 1, infinite: bool = False) -> DataLoader:
+class R3Dataset(Dataset):
+    def __init__(
+        self, proba_dist: Callable[[int], Tensor], n_samples: int, release_threshold: float = 0.1
+    ) -> None:
+        """Dataset for R3 sampling (introduced in https://arxiv.org/abs/2207.02338#).
+
+        This is an evolutionary dataset, that updates itself during training, based on the fitness values of the samples.
+        It releases samples if the corresponding fitness value is below the threshold and retains them otherwise.
+        The released samples are replaced by new samples generated from a probability distribution.
+
+        While this scheme was originally proposed for training physics-informed neural networks,
+        this implementation can be used for any type of data that can be sampled from a probability distribution.
+
+        Args:
+            proba_dist: Probability distribution function for generating features.
+            n_samples: Number of samples to generate.
+            release_threshold: Threshold for releasing samples.
+        """
+        if release_threshold < 0.0:
+            raise ValueError("Release threshold must be non-negative.")
+
+        self.proba_dist = proba_dist
+        self.n_samples = n_samples
+        self.release_threshold = release_threshold
+
+        self.features = proba_dist(n_samples)
+
+        self._released: Tensor | None = None
+        self._released_indices: Tensor | None = None
+        self._resampled: Tensor | None = None
+
+        self.n_released: int = 0
+        self.n_retained: int = 0
+
+    def __len__(self) -> int:
+        return self.n_samples
+
+    def __getitem__(self, index: int) -> Tensor:
+        return self.features[index]
+
+    def _release(self, fitness_values: Tensor) -> None:
+        """Release samples if the corresponding fitness value is below the threshold."""
+        if len(fitness_values) != self.n_samples:
+            raise ValueError("fitness_values must have the same length as the dataset")
+
+        release_mask = fitness_values < self.release_threshold
+        self._released_indices = torch.nonzero(release_mask).squeeze()  # can be empty
+        self._released = self.features[self._released_indices]
+
+        self.n_released = torch.numel(self._released_indices)
+        self.n_retained = self.n_samples - self.n_released
+
+    def _resample(self) -> Tensor:
+        """Resample released samples."""
+        self._resampled = self.proba_dist(self.n_released)
+        return self._resampled
+
+    def update(self, fitness_values: Tensor) -> None:
+        """Update the dataset by releasing samples below fitness threshold and resampling.
+
+        Args:
+            fitness_values (Tensor): the fitness values of the samples.
+        """
+        self._release(fitness_values)
+        if self.n_released > 0:
+            new_samples = self._resample()
+
+            with torch.no_grad():
+                self.features[self._released_indices] = new_samples
+        else:
+            pass
+
+
+class GenerativeIterableDataset(IterableDataset):
+    def __init__(
+        self,
+        proba_dist: Callable[[], Tensor],
+    ) -> None:
+        """Dataset for sampling from a probability distribution.
+
+        Samples once per iteration.
+
+        Args:
+            proba_dist: the probability distribution to be sampled.
+        """
+        self.proba_dist = proba_dist
+
+    def __iter__(self) -> Iterator[Tensor]:
+        while True:
+            x = self.proba_dist()
+            yield x
+
+
+def to_dataloader(
+    *tensors: Tensor,
+    batch_size: int = 1,
+    infinite: bool = False,
+    collate_fn: Callable | None = None,
+) -> DataLoader:
     """Convert torch tensors an (infinite) Dataloader.
 
     Arguments:
@@ -97,6 +195,8 @@ def to_dataloader(*tensors: Tensor, batch_size: int = 1, infinite: bool = False)
         batch_size: batch size of sampled tensors
         infinite: if `True`, the dataloader will keep sampling indefinitely even after the whole
             dataset was sampled once
+        collate_fn: function to collate the sampled tensors. Passed to torch.utils.data.DataLoader.
+            If None, defaults to torch.utils.data.default_collate.
 
     Examples:
 
@@ -112,7 +212,7 @@ def to_dataloader(*tensors: Tensor, batch_size: int = 1, infinite: bool = False)
     ```
     """
     ds = InfiniteTensorDataset(*tensors) if infinite else TensorDataset(*tensors)
-    return DataLoader(ds, batch_size=batch_size)
+    return DataLoader(ds, batch_size=batch_size, collate_fn=collate_fn)
 
 
 @singledispatch

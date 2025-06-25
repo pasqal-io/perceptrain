@@ -20,19 +20,19 @@ config = TrainConfig(
 The `Trainer` class in `perceptrain` provides built-in support for executing callbacks at various stages in the training process, managed through a callback manager. By default, several callbacks are added to specific hooks to automate common tasks, such as check-pointing, metric logging, and model tracking.
 
 ### Default Callbacks
+
 Below is a list of the default callbacks and their assigned hooks:
 
-- **`train_start`**: `PlotMetrics`, `SaveCheckpoint`, `WriteMetrics`
-- **`train_epoch_end`**: `SaveCheckpoint`, `PrintMetrics`, `PlotMetrics`, `WriteMetrics`
+- **`train_start`**: `WritePlots`, `SaveCheckpoint`, `WriteMetrics`
+- **`train_epoch_end`**: `SaveCheckpoint`, `PrintMetrics`, `WritePlots`, `LivePlotMetrics`, `WriteMetrics`
 - **`val_epoch_end`**: `SaveBestCheckpoint`, `WriteMetrics`
-- **`train_end`**: `LogHyperparameters`, `LogModelTracker`, `WriteMetrics`, `SaveCheckpoint`, `PlotMetrics`
+- **`train_end`**: `LogHyperparameters`, `LogModelTracker`, `WriteMetrics`, `SaveCheckpoint`, `WritePlots`
 
 These defaults handle common needs, but you can also add custom callbacks to any hook.
 
 ### Example: Adding a Custom Callback
 
 To create a custom `Trainer` that includes a `PrintMetrics` callback executed specifically at the end of each epoch, follow the steps below.
-
 
 ```python exec="on" source="material-block" html="1"
 from perceptrain.trainer import Trainer

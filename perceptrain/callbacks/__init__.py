@@ -4,6 +4,7 @@ from .callback import (
     Callback,
     EarlyStopping,
     GradientMonitoring,
+    LivePlotMetrics,
     LoadCheckpoint,
     LogHyperparameters,
     LogModelTracker,
@@ -13,9 +14,11 @@ from .callback import (
     LRSchedulerReduceOnPlateau,
     PlotMetrics,
     PrintMetrics,
+    R3Sampling,
     SaveBestCheckpoint,
     SaveCheckpoint,
     WriteMetrics,
+    WritePlots,
 )
 from .callbackmanager import CallbacksManager
 from .writer_registry import get_writer
@@ -24,11 +27,13 @@ from .writer_registry import get_writer
 __all__ = [
     "CallbacksManager",
     "Callback",
+    "LivePlotMetrics",
     "LoadCheckpoint",
     "LogHyperparameters",
     "LogModelTracker",
-    "PlotMetrics",
+    "WritePlots",
     "PrintMetrics",
+    "R3Sampling",
     "SaveBestCheckpoint",
     "SaveCheckpoint",
     "WriteMetrics",

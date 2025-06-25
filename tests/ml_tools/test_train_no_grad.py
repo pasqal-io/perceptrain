@@ -35,7 +35,7 @@ def test_train_dataloader_default(tmp_path: Path, Basic: torch.nn.Module) -> Non
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
 
-    def loss_fn(model: torch.nn.Module, data: torch.Tensor) -> tuple[torch.Tensor, dict]:
+    def loss_fn(data: torch.Tensor, model: torch.nn.Module) -> tuple[torch.Tensor, dict]:
         next(cnt)
         x, y = data[0], data[1]
         out = model(x)

@@ -1,24 +1,24 @@
 from __future__ import annotations
 
-import copy
 from itertools import islice
 from logging import getLogger
 from typing import Any, Callable, Iterable, cast
-from nevergrad.optimization.base import Optimizer as NGOptimizer
+
 import torch
+from nevergrad.optimization.base import Optimizer as NGOptimizer
+from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn, TimeRemainingColumn
 from torch import nn, optim
 from torch.utils.data import DataLoader
-from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn, TimeRemainingColumn
 
 from perceptrain.config import TrainConfig
-from perceptrain.data import DictDataLoader, OptimizeResult, data_to_device
+from perceptrain.data import DictDataLoader, OptimizeResult
 from perceptrain.information import InformationContent
 from perceptrain.optimize_step import optimize_step, update_ng_parameters
 from perceptrain.stages import TrainingStage
 from perceptrain.tensors import detach_loss_metrics
 
-from .train_utils.base_trainer import BaseTrainer
 from .train_utils.accelerator import Accelerator
+from .train_utils.base_trainer import BaseTrainer
 
 logger = getLogger("perceptrain")
 
@@ -571,7 +571,7 @@ class Trainer(BaseTrainer):
             tuple[torch.Tensor, dict[str, Any]]: Loss and metrics for the batch.
         """
         with torch.no_grad():
-            loss_metrics = self.loss_fn(self.model, batch)
+            loss_metrics = self.loss_fn(batch, self.model)
         return self._modify_batch_end_loss_metrics(loss_metrics)
 
     def test(self, test_dataloader: DataLoader = None) -> list[tuple[torch.Tensor, dict[str, Any]]]:
@@ -617,7 +617,7 @@ class Trainer(BaseTrainer):
             tuple[torch.Tensor, dict[str, Any]]: Loss and metrics for the batch.
         """
         with torch.no_grad():
-            loss_metrics = self.loss_fn(self.model, batch)
+            loss_metrics = self.loss_fn(batch, self.model)
         return self._modify_batch_end_loss_metrics(loss_metrics)
 
     def _batch_iter(

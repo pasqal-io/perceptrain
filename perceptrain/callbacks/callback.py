@@ -4,10 +4,20 @@ import math
 from logging import getLogger
 from typing import Any, Callable
 
+import livelossplot.plot_losses as llp
+import matplotlib.pyplot as plt
+import torch
+import torch.nn as nn
+from livelossplot.outputs import MatplotlibPlot
+from torch import Tensor
+
 from perceptrain.callbacks.saveload import load_checkpoint, write_checkpoint
 from perceptrain.callbacks.writer_registry import BaseWriter
 from perceptrain.config import TrainConfig
-from perceptrain.data import OptimizeResult
+from perceptrain.data import (
+    OptimizeResult,
+    R3Dataset,
+)
 from perceptrain.stages import TrainingStage
 
 # Define callback types
@@ -288,21 +298,21 @@ class WriteMetrics(Callback):
             writer.write(opt_result.iteration, opt_result.metrics)
 
 
-class PlotMetrics(Callback):
+class WritePlots(Callback):
     """Callback to plot metrics using the writer.
 
-    The `PlotMetrics` callback can be added to the `TrainConfig` callbacks as
+    The `WritePlots` callback can be added to the `TrainConfig` callbacks as
     a custom user defined callback.
 
     Example Usage in `TrainConfig`:
-    To use `PlotMetrics`, include it in the `callbacks` list when setting up your
+    To use `WritePlots`, include it in the `callbacks` list when setting up your
     `TrainConfig`:
     ```python exec="on" source="material-block" result="json"
     from perceptrain import TrainConfig
-    from perceptrain.callbacks import PlotMetrics
+    from perceptrain.callbacks import WritePlots
 
-    # Create an instance of the PlotMetrics callback
-    plot_metrics_callback = PlotMetrics(on = "val_batch_end", called_every = 100)
+    # Create an instance of the WritePlots callback
+    plot_metrics_callback = WritePlots(on = "val_batch_end", called_every = 100)
 
     config = TrainConfig(
         max_iter=10000,
@@ -326,6 +336,58 @@ class PlotMetrics(Callback):
             opt_result = trainer.opt_result
             plotting_functions = config.plotting_functions
             writer.plot(trainer.model, opt_result.iteration, plotting_functions)
+
+
+class LivePlotMetrics(Callback):
+    """Callback to follow metrics on screen during training.
+
+    It uses [livelossplot](https://github.com/stared/livelossplot) to update losses and metrics
+    at every call and plot them via matplotlib.
+    """
+
+    def __init__(self, on: str, called_every: int, arrange: dict[str, list[str]] | None = None):
+        """Initializes the callback.
+
+        Args:
+            on (str): The event to trigger the callback.
+            called_every (int): Frequency of callback calls in terms of iterations.
+            arrange (dict[str, dict[str, list[str]]): How metrics are arranged for the subplots. Each entry
+                is a different group, which will correspond to a different subplot.
+                If None, all metrics will be plotted in a single subplot.
+                Defaults to None.
+        """
+        super().__init__(on=on, called_every=called_every)
+        self.arrange = arrange
+
+        self.output_mode = llp.get_mode()
+
+        self._first_call = True
+
+    def _after_plots(self, fig: plt.Figure) -> None:
+        fig.tight_layout()
+        if self.output_mode == "script":
+            plt.draw()
+            plt.pause(0.1)
+            plt.close(fig)
+        else:
+            plt.show()
+
+    def run_callback(self, trainer: Any, config: TrainConfig, writer: BaseWriter) -> Any:
+        if self._first_call:
+            if self.arrange is None:
+                self.arrange = {"Training": [key for key in trainer.opt_result.metrics.keys()]}
+
+            self.liveloss = llp.PlotLosses(
+                outputs=[MatplotlibPlot(after_plots=self._after_plots)],
+                groups=self.arrange,
+            )
+            self._first_call = False
+
+        if trainer.accelerator.rank == 0:
+            opt_result = trainer.opt_result
+            self.liveloss.update(opt_result.metrics, current_step=trainer.current_epoch)
+            with torch.no_grad():
+                self.liveloss.send()
 
 
 class LogHyperparameters(Callback):
@@ -933,3 +995,103 @@ class GradientMonitoring(Callback):
                     )
 
             writer.write(trainer.opt_result.iteration, gradient_stats)
+
+
+class R3Sampling(Callback):
+    def __init__(
+        self,
+        initial_dataset: R3Dataset,
+        fitness_function: Callable[[Tensor, nn.Module], Tensor],
+        verbose: bool = False,
+        called_every: int = 1,
+    ):
+        """Callback for R3 sampling (https://arxiv.org/abs/2207.02338#).
+
+        Args:
+            initial_dataset (R3Dataset): The dataset updating according to the R3 scheme.
+            fitness_function (Callable[[Tensor, nn.Module], Tensor]): The function to
+                compute fitness scores for samples. Based on the fitness scores, the
+                samples are retained or released.
+            verbose (bool, optional): Whether to print the callback's summary.
+                Defaults to False.
+            called_every (int, optional): Every how many events the callback is called.
+                Defaults to 1.
+
+        Notes:
+            - R3 sampling was developed as a technique for efficient sampling of physics-informed
+            neural networks (PINNs). In this case, the fitness function can be any function of the
+            residuals of the equations
+
+        Examples:
+            Learning an harmonic oscillator with PINNs and R3 sampling. For a well-posed problem, also
+            add the two initial conditions.
+
+            ```python
+                import torch
+
+                m = 1.0
+                k = 1.0
+
+                def uniform_1d(n: int):
+                    return torch.rand(size=(n, 1))
+
+                def harmonic_oscillator(x: torch.Tensor, model: torch.nn.Module) -> torch.Tensor:
+                    u = model(x)
+                    dudt = torch.autograd.grad(
+                        outputs=u,
+                        inputs=x,
+                        grad_outputs=torch.ones_like(u),
+                        create_graph=True,
+                        retain_graph=True,
+                    )[0]
+                    d2udt2 = torch.autograd.grad(
+                        outputs=dudt,
+                        inputs=x,
+                        grad_outputs=torch.ones_like(dudt),
+                    )[0]
+                    return m * d2udt2 - kappa * u
+
+                def fitness_function(x: torch.Tensor, model: PINN) -> torch.Tensor:
+                    return torch.linalg.vector_norm(harmonic_oscillator(x, model.nn), ord=2)
+
+                dataset = R3Dataset(
+                    proba_dist=uniform_1d,
+                    n_samples=20,
+                    release_threshold=1.0,
+                )
+
+                callback_r3 = R3Sampling(
+                    initial_dataset=dataset,
+                    fitness_function=fitness_function,
+                    called_every=10,
+                )
+            ```
+        """
+        self.dataset = initial_dataset
+        self.fitness_function = fitness_function
+        self.verbose = verbose
+
+        super().__init__(on="train_epoch_start", called_every=called_every)
+
+    def run_callback(self, trainer: Any, config: TrainConfig, writer: BaseWriter) -> None:
+        """Runs the callback.
+
+        Computes fitness scores for samples and triggers the dataset update.
+
+        Args:
+            trainer (Any): The trainer instance.
+            config (TrainConfig): The training configuration.
+            writer (BaseWriter): The writer instance.
+        """
+        # Compute fitness function on all samples
+        fitnesses = self.fitness_function(self.dataset.features, trainer.model)
+
+        # R3 update
+        self.dataset.update(fitnesses)
+
+        if self.verbose:
+            print(
+                f"Epoch {trainer.current_epoch};"
+                f" num. retained: {self.dataset.n_samples - self.dataset.n_released:5d};"
+                f" num. released: {self.dataset.n_released:5d}"
+            )

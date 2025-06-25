@@ -1,4 +1,3 @@
-
 # Built-in Callbacks
 
 `perceptrain` offers several built-in callbacks for common tasks like saving checkpoints, logging metrics, and tracking models. Below is an overview of each.
@@ -35,19 +34,38 @@ config = TrainConfig(
 )
 ```
 
-### 3. `PlotMetrics`
+### 3. `WritePlots`
 
 Plots metrics based on user-defined plotting functions.
 
 ```python exec="on" source="material-block" html="1"
 from perceptrain import TrainConfig
-from perceptrain.callbacks import PlotMetrics
+from perceptrain.callbacks import WritePlots
 
-plot_metrics_callback = PlotMetrics(on="train_epoch_end", called_every=100)
+plot_metrics_callback = WritePlots(on="train_epoch_end", called_every=100)
 
 config = TrainConfig(
     max_iter=5000,
     callbacks=[plot_metrics_callback]
+)
+```
+
+### 3. `LivePlotMetrics`
+
+Plots dynamically on screen the metrics followed during training. The `arrange` parameter allows for custom arrangement of subplots.
+
+```python exec="on" source="material-block" html="1"
+from perceptrain import TrainConfig
+from perceptrain.callbacks import LivePlotMetrics
+
+live_plot_callback = LivePlotMetrics(on="train_epoch_end",
+    called_every=100,
+    arrange={"training": ["train_loss", "train_metric_first"], "validation": ["val_loss", "val_metric_second"]},
+)
+
+config = TrainConfig(
+    max_iter=5000,
+    callbacks=[live_plot_callback]
 )
 ```
 
@@ -233,5 +251,62 @@ gradient_monitoring = GradientMonitoring(on="train_batch_end", called_every=10)
 config = TrainConfig(
     max_iter=10000,
     callbacks=[gradient_monitoring]
+)
+```
+
+### 14. `R3Sampling`
+
+Triggers the update of the dataset using the R3 sampling technique (ref. [here](https://arxiv.org/abs/2207.02338#)).
+
+The following example shows how to set-up R3 Sampling to learn a harmonic oscillator with physics-informed neural networks.
+
+```python exec="on" source="material-block" html="1"
+import torch
+
+from perceptrain import TrainConfig
+from perceptrain.callbacks import R3Sampling
+from perceptrain.data import R3Dataset
+from perceptrain.models import PINN
+
+m = 1.0
+k = 1.0
+
+def uniform_1d(n: int):
+    return torch.rand(size=(n, 1))
+
+def harmonic_oscillator(x: torch.Tensor, model: torch.nn.Module) -> torch.Tensor:
+    u = model(x)
+    dudt = torch.autograd.grad(
+        outputs=u,
+        inputs=x,
+        grad_outputs=torch.ones_like(u),
+        create_graph=True,
+        retain_graph=True,
+    )[0]
+    d2udt2 = torch.autograd.grad(
+        outputs=dudt,
+        inputs=x,
+        grad_outputs=torch.ones_like(dudt),
+    )[0]
+    return m * d2udt2 - kappa * u
+
+def fitness_function(x: torch.Tensor, model: PINN) -> torch.Tensor:
+    return torch.linalg.vector_norm(harmonic_oscillator(x, model.nn), ord=2)
+
+dataset = R3Dataset(
+    proba_dist=uniform_1d,
+    n_samples=20,
+    release_threshold=1.0,
+)
+
+callback_r3 = R3Sampling(
+    initial_dataset=dataset,
+    fitness_function=fitness_function,
+    called_every=100,
+)
+
+config = TrainConfig(
+    max_iter=1000,
+    callbacks=[callback_r3]
 )
 ```
