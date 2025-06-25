@@ -20,7 +20,6 @@ from perceptrain.callbacks import (
     LRSchedulerCyclic,
     LRSchedulerStepDecay,
     LRSchedulerReduceOnPlateau,
-    PlotMetrics,
     PrintMetrics,
     SaveBestCheckpoint,
     SaveCheckpoint,

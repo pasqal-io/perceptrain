@@ -12,7 +12,6 @@ from .callback import (
     LRSchedulerCyclic,
     LRSchedulerStepDecay,
     LRSchedulerReduceOnPlateau,
-    PlotMetrics,
     PrintMetrics,
     R3Sampling,
     SaveBestCheckpoint,
