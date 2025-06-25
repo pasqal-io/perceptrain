@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
+from pytest import FixtureRequest
 import torch
 from torch.utils.data import DataLoader
 
@@ -18,6 +19,7 @@ from perceptrain.callbacks import (
     LRSchedulerCosineAnnealing,
     LRSchedulerCyclic,
     LRSchedulerStepDecay,
+    LRSchedulerReduceOnPlateau,
     PrintMetrics,
     SaveBestCheckpoint,
     SaveCheckpoint,
@@ -60,6 +62,68 @@ def trainer(Basic: torch.nn.Module, tmp_path: Path) -> Trainer:
     )
     trainer.training_stage = TrainingStage("train_start")
     return trainer
+
+
+@pytest.fixture
+def plateau_lr_callback(trainer: Trainer) -> LRSchedulerReduceOnPlateau:
+    return LRSchedulerReduceOnPlateau(
+        on=trainer.training_stage,
+        called_every=1,
+        monitor="train_loss",
+        patience=2,
+        mode="min",
+        gamma=0.1,
+        threshold=1e-4,
+        min_lr=1e-2,
+    )
+
+
+@pytest.fixture(params=[2, 5])
+def update_plateau_scheduler_with_increasing_metric(
+    plateau_lr_callback: LRSchedulerReduceOnPlateau,
+    trainer: Trainer,
+    request: FixtureRequest,
+) -> tuple[float, float, int]:
+    # Tests are set up so that lr is reduced every patience=2 epochs
+    # and min_lr is reached in 2*patience epochs.
+    callback = plateau_lr_callback
+    writer = trainer.callback_manager.writer = Mock()
+    stage = trainer.training_stage
+
+    # Set initial lr
+    min_lr = callback.min_lr
+    gamma = callback.gamma
+    initial_lr = min_lr * gamma ** (-2)  # Get to min_lr in 2*patience epochs
+    trainer.optimizer.param_groups[0]["lr"] = initial_lr  # type: ignore
+
+    # Set initial loss
+    trainer.opt_result.metrics = {callback.monitor: 0.5}
+    callback(stage, trainer, trainer.config, writer)
+
+    n_epochs = request.param
+    for _ in range(n_epochs):
+        callback(stage, trainer, trainer.config, writer)
+        trainer.opt_result.metrics[callback.monitor] += 0.1
+    new_lr = trainer.optimizer.param_groups[0]["lr"]  # type: ignore
+    return initial_lr, new_lr, n_epochs
+
+
+def test_lr_scheduler_reduce_on_plateau(
+    update_plateau_scheduler_with_increasing_metric: tuple[float, float, int],
+    plateau_lr_callback: LRSchedulerReduceOnPlateau,
+) -> None:
+    min_lr = plateau_lr_callback.min_lr
+    gamma = plateau_lr_callback.gamma
+    patience = plateau_lr_callback.patience
+
+    initial_lr, new_lr, n_epochs = update_plateau_scheduler_with_increasing_metric
+
+    if n_epochs == patience:
+        assert math.isclose(initial_lr * gamma, new_lr, rel_tol=1e-6)
+
+    # Should get to min_lr in 2*patience epochs
+    elif n_epochs >= 2 * patience:
+        assert math.isclose(min_lr, new_lr, rel_tol=1e-6)
 
 
 def test_save_checkpoint(trainer: Trainer) -> None:
