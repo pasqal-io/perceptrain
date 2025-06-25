@@ -897,10 +897,15 @@ class R3Sampling(Callback):
             add the two initial conditions.
 
             ```python
+                import torch
+
+                m = 1.0
+                k = 1.0
+
                 def uniform_1d(n: int):
                     return torch.rand(size=(n, 1))
 
-                def harmonic_oscillator(x: torch.Tensor, model: torch.nn.Module, m: float = 1.0, kappa: float = 1.0) -> torch.Tensor:
+                def harmonic_oscillator(x: torch.Tensor, model: torch.nn.Module) -> torch.Tensor:
                     u = model(x)
                     dudt = torch.autograd.grad(
                         outputs=u,
