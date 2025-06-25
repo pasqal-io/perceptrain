@@ -1,0 +1,57 @@
+<!-- Custom HTML site displayed as the Home chapter -->
+
+{% extends "main.html" %}
+{% block tabs %}
+{{ super() }}
+
+<link rel="css" type="text/css" href="./extras/css/home.css" />
+
+<!-- Main site Entry button descriptions -->
+<section class="hero-container">
+    <div class="md-grid md-typeset">
+        <div class="hero-section">
+            <div class="logo-container">
+                <div class="logo-image">
+                    <img src="./extras/assets/logo/perceptrain_logo_white.svg" draggable="false">
+                </div>
+            </div>
+            <div class="button-container">
+                <a href="{{ page.next_page.url | url }}" class="md-button md-button--primary">
+                    Get started
+                </a>
+                <a href="{{ config.repo_url }}" class="md-button">
+                    Go to GitHub
+                </a>
+                <!-- <a href="https://arxiv.org/abs/2401.09915" class="md-button">
+                    Whitepaper
+                </a> -->
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="main-features">
+    <div class="md-grid md-typeset">
+        <div class="header">
+            <p>A Python package for distributed machine learning training.</p>
+        </div>
+        <div class="arch-container">
+            <div class="arch-image">
+                <img src="./extras/assets/perceptrain_arch.png" draggable="false">
+            </div>
+            <div class="features">
+                <ul>
+                    <li> <p>Training models made simple with Trainer and Train Configurations.</p></li>
+                    <li> <p>Support for gradient based and gradient free optimization.</p></li>
+                    <li> <p>Distributed training made simple across multi node/multi gpu setups.</p></li>
+                    <li> <p>Extensive callbacks, along with support for <a href="https://mlflow.org/docs/latest/">mlflow</a> and <a href="https://www.tensorflow.org/tensorboard">tensorboard</a> tracking.</p></li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}
+{% block content %}{% endblock %}
+{% block footer %}{% endblock %}

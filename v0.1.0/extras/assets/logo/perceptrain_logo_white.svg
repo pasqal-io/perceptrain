@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1215.145pt" height="315pt" viewBox="-10 -70 1250 350">
+  <g transform="translate(10,100) scale(1.0)" stroke="#ffffff" fill="#ffffff">
+    <circle cx="0" cy="-30" r="6"/>
+    <circle cx="0" cy="0" r="6"/>
+    <circle cx="0" cy="30" r="6"/>
+    <circle cx="40" cy="-45" r="6"/>
+    <circle cx="40" cy="-15" r="6"/>
+    <circle cx="40" cy="15" r="6"/>
+    <circle cx="40" cy="45" r="6"/>
+    <circle cx="80" cy="0" r="6"/>
+    <line x1="0" y1="-30" x2="40" y2="-45" stroke-width="1.5"/>
+    <line x1="0" y1="-30" x2="40" y2="-15" stroke-width="1.5"/>
+    <line x1="0" y1="-30" x2="40" y2="15" stroke-width="1.5"/>
+    <line x1="0" y1="-30" x2="40" y2="45" stroke-width="1.5"/>
+    <line x1="0" y1="0" x2="40" y2="-45" stroke-width="1.5"/>
+    <line x1="0" y1="0" x2="40" y2="-15" stroke-width="1.5"/>
+    <line x1="0" y1="0" x2="40" y2="15" stroke-width="1.5"/>
+    <line x1="0" y1="0" x2="40" y2="45" stroke-width="1.5"/>
+    <line x1="0" y1="30" x2="40" y2="-45" stroke-width="1.5"/>
+    <line x1="0" y1="30" x2="40" y2="-15" stroke-width="1.5"/>
+    <line x1="0" y1="30" x2="40" y2="15" stroke-width="1.5"/>
+    <line x1="0" y1="30" x2="40" y2="45" stroke-width="1.5"/>
+    <line x1="40" y1="-45" x2="80" y2="0" stroke-width="1.5"/>
+    <line x1="40" y1="-15" x2="80" y2="0" stroke-width="1.5"/>
+    <line x1="40" y1="15" x2="80" y2="0" stroke-width="1.5"/>
+    <line x1="40" y1="45" x2="80" y2="0" stroke-width="1.5"/>
+  </g>
+  <text x="100" y="155" font-family="Segoe UI, sans-serif" font-size="160" font-weight="bold" fill="#ffffff" letter-spacing="6">PERCEPTRAIN</text>
+  <text x="110" y="195" font-family="Segoe UI, sans-serif" font-size="25" font-weight="normal" fill="#ffffff" letter-spacing="1">Machine Learning Training, Simplified, At Scale</text>
+</svg>
