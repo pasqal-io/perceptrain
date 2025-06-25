@@ -760,7 +760,9 @@ class LRSchedulerReduceOnPlateau(Callback):
             config (TrainConfig): The configuration object.
             writer (BaseWriter): The writer object for logging.
         """
-        if not self.reached_minimum_lr:
+        if self.reached_minimum_lr:
+            pass
+        else:
             current_value = trainer.opt_result.metrics.get(self.monitor)
             if current_value is None:
                 raise ValueError(
