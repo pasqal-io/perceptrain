@@ -749,7 +749,7 @@ class LRSchedulerReduceOnPlateau(Callback):
 
         self.best_value = float("inf")
         self.counter = 0
-        self.reached_minimum = False
+        self.reached_minimum_lr = False
 
     def run_callback(self, trainer: Any, config: TrainConfig, writer: BaseWriter) -> None:
         """
@@ -760,7 +760,7 @@ class LRSchedulerReduceOnPlateau(Callback):
             config (TrainConfig): The configuration object.
             writer (BaseWriter): The writer object for logging.
         """
-        if not self.reached_minimum:
+        if not self.reached_minimum_lr:
             current_value = trainer.opt_result.metrics.get(self.monitor)
             if current_value is None:
                 raise ValueError(
@@ -780,7 +780,7 @@ class LRSchedulerReduceOnPlateau(Callback):
                     new_lr = param_group["lr"] * self.gamma
                     if new_lr < self.min_lr:
                         param_group["lr"] = self.min_lr
-                        self.reached_minimum = True
+                        self.reached_minimum_lr = True
                         if self.verbose:
                             logger.info(
                                 f"Learning rate has reached the minimum learning rate {self.min_lr}"
